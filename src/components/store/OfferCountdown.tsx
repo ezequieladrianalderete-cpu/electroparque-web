@@ -9,10 +9,10 @@ export function OfferCountdown({ endsAt }: { endsAt: string }) {
       const diff = new Date(endsAt).getTime() - Date.now();
       if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, expired: true };
       return {
-        d: Math.floor(diff / 86400000),
-        h: Math.floor((diff % 86400000) / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
+        d: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        h: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        m: Math.floor((diff / (1000 * 60)) % 60),
+        s: Math.floor((diff / 1000) % 60),
         expired: false,
       };
     };
@@ -21,10 +21,10 @@ export function OfferCountdown({ endsAt }: { endsAt: string }) {
     return () => clearInterval(interval);
   }, [endsAt]);
 
-  if (time.expired) return <p className="text-red-300 text-xs font-bold">⏱ Oferta finalizada</p>;
+  if (time.expired) return null;
 
   return (
-    <div>
+    <div className="mt-2">
       <p className="text-white/60 text-xs mb-2">⏱ Termina en:</p>
       <div className="flex gap-2">
         {[
@@ -34,10 +34,10 @@ export function OfferCountdown({ endsAt }: { endsAt: string }) {
           [time.s, 'seg'],
         ].map(([val, label]) => (
           <div key={label as string} className="text-center">
-            <div className="bg-white/15 text-white font-bold text-lg px-2.5 py-1.5 rounded-lg min-w-[40px]">
+            <div className="bg-white/20 backdrop-blur-sm text-white font-bold text-lg px-3 py-2 rounded-lg min-w-[44px] shadow-inner">
               {String(val).padStart(2, '0')}
             </div>
-            <div className="text-white/40 text-[9px] mt-1">{label}</div>
+            <div className="text-white/50 text-[9px] mt-1 font-medium">{label}</div>
           </div>
         ))}
       </div>
