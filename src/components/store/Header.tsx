@@ -25,7 +25,7 @@ export function Header() {
   return (
     <>
       <div className="bg-gradient-to-r from-ep-navy via-ep-navy-light to-ep-navy text-white text-xs text-center py-2 px-4 font-medium">
-        🚚 ¡Envío GRATIS en todas las compras! · 📞 11 3884-8412
+        🚚 ¡Envío GRATIS en todas las compras! · 📞 11 4412-8645
       </div>
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
