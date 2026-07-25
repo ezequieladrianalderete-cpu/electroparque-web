@@ -35,7 +35,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between font-bold text-lg mt-4 pt-3 border-t">
               <span>Total</span><span className="text-ep-navy">{formatPrice(total())}</span>
             </div>
-            <a href={`https://wa.me/541138848412?text=${encodeURIComponent('Hola! Quiero realizar una compra por ' + formatPrice(total()))}`}
+            <a href={`https://wa.me/541144128645?text=${encodeURIComponent('Hola! Quiero realizar una compra por ' + formatPrice(total()))}`}
               target="_blank" rel="noopener noreferrer"
               className="w-full bg-ep-red hover:bg-ep-red-dark text-white font-bold py-3.5 rounded-xl mt-4 flex items-center justify-center gap-2 text-center block">
               💬 Comprar por WhatsApp
