@@ -11,6 +11,7 @@ interface CartStore {
   toggleCart: () => void;
   total: () => number;
   count: () => number;
+  buyNow: (product: Product, variant?: ProductVariant, qty?: number) => void;
 }
 
 export const useCart = create<CartStore>((set, get) => ({
@@ -27,4 +28,5 @@ export const useCart = create<CartStore>((set, get) => ({
   toggleCart: () => set(s => ({ isOpen: !s.isOpen })),
   total: () => get().items.reduce((t, i) => t + (i.product.price + (i.variant?.price_modifier || 0)) * i.quantity, 0),
   count: () => get().items.reduce((t, i) => t + i.quantity, 0),
+  buyNow: (product, variant, qty = 1) => set({ items: [{ product, variant, quantity: qty }], isOpen: false }),
 }));
