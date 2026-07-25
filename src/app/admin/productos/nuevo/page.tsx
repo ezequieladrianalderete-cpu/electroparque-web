@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Trash2, ArrowLeft, Save } from 'lucide-react';
+import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NuevoProductoPage() {
@@ -10,10 +10,11 @@ export default function NuevoProductoPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<{file: File; preview: string}[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [cats, setCats] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState('');
-  const [form, setForm] = useState({ name:'', slug:'', short_description:'', description:'', price:'', compare_at_price:'', sku:'', category_id:'', is_active:true, is_featured:false, tags:'' });
+  const [form, setForm] = useState({ name:'', slug:'', short_description:'', description:'', price:'', compare_at_price:'', sku:'', category_id:'', is_active:true, is_featured:false, tags:'', video_url:'' });
   const [specs, setSpecs] = useState<{key:string;value:string}[]>([{key:'',value:''}]);
   const [variants, setVariants] = useState<{name:string;value:string;price_modifier:string;stock:string}[]>([]);
 
@@ -24,15 +25,22 @@ export default function NuevoProductoPage() {
     setForm(f => ({...f, [k]: val, ...(k==='name' ? {slug: val.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+$/,'')} : {})}));
   };
 
-  const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files || []).forEach(file => setImages(prev => [...prev, {file, preview: URL.createObjectURL(file)}]));
-  };
-
   const save = async () => {
     if (!form.name || !form.price) { setMsg('Nombre y precio son obligatorios'); return; }
     setSaving(true); setMsg('');
     const specsObj: Record<string,string> = {};
     specs.filter(s=>s.key.trim()).forEach(s => specsObj[s.key]=s.value);
+
+    let videoUrl = form.video_url;
+    if (videoFile) {
+      const ext = videoFile.name.split('.').pop();
+      const path = `videos/${Date.now()}.${ext}`;
+      const { error: vErr } = await supabase.storage.from('products').upload(path, videoFile);
+      if (!vErr) {
+        const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path);
+        videoUrl = publicUrl;
+      } else { setMsg('Error subiendo video: ' + vErr.message); setSaving(false); return; }
+    }
 
     const { data: product, error } = await supabase.from('products').insert({
       name: form.name, slug: form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),
@@ -41,6 +49,7 @@ export default function NuevoProductoPage() {
       sku: form.sku || null, category_id: form.category_id || null,
       is_active: form.is_active, is_featured: form.is_featured,
       tags: form.tags ? form.tags.split(',').map(t=>t.trim()) : [], specs: specsObj,
+      video_url: videoUrl || null,
     }).select().single();
 
     if (error) { setMsg('Error: ' + error.message); setSaving(false); return; }
@@ -52,7 +61,7 @@ export default function NuevoProductoPage() {
       if (!upErr) {
         const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path);
         await supabase.from('product_images').insert({ product_id: product.id, url: publicUrl, is_primary: i === 0, sort_order: i });
-      } else { setMsg('Error subiendo imagen: ' + upErr.message); }
+      }
     }
 
     for (const v of variants.filter(v => v.name.trim() && v.value.trim())) {
@@ -79,7 +88,7 @@ export default function NuevoProductoPage() {
             <div><label className="label">Nombre *</label><input value={form.name} onChange={set('name')} className="input-field"/></div>
             <div><label className="label">Slug</label><input value={form.slug} onChange={set('slug')} className="input-field font-mono text-xs"/></div>
             <div><label className="label">Descripción corta</label><textarea value={form.short_description} onChange={set('short_description')} rows={2} className="input-field resize-none"/></div>
-            <div><label className="label">Descripción HTML (acepta etiquetas HTML: h2, p, ul, li, strong, etc.)</label><textarea value={form.description} onChange={set('description')} rows={8} className="input-field resize-none font-mono text-xs" placeholder="<h2>Título</h2><p>Descripción</p><ul><li>Característica</li></ul>"/></div>
+            <div><label className="label">Descripción HTML (h2, p, ul, li, strong, img)</label><textarea value={form.description} onChange={set('description')} rows={8} className="input-field resize-none font-mono text-xs" placeholder="<h2>Título</h2><p>Texto</p><ul><li>Item</li></ul>"/></div>
             <div><label className="label">Tags (coma separados)</label><input value={form.tags} onChange={set('tags')} className="input-field" placeholder="carplay, moto"/></div>
           </div>
           <div className="bg-white rounded-xl border p-5">
@@ -94,24 +103,35 @@ export default function NuevoProductoPage() {
               ))}
               <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-ep-navy">
                 <Upload className="w-6 h-6 text-gray-400 mb-1"/><span className="text-[10px] text-gray-400">Agregar</span>
-                <input type="file" accept="image/*" multiple onChange={handleImages} className="hidden"/>
+                <input type="file" accept="image/*" multiple onChange={e => Array.from(e.target.files||[]).forEach(f => setImages(p => [...p, {file:f, preview:URL.createObjectURL(f)}]))} className="hidden"/>
               </label>
             </div>
           </div>
+          <div className="bg-white rounded-xl border p-5 space-y-3">
+            <h2 className="font-bold text-sm flex items-center gap-2"><Film className="w-4 h-4"/>Video del producto</h2>
+            <div><label className="label">URL de YouTube (opcional)</label><input value={form.video_url} onChange={set('video_url')} className="input-field" placeholder="https://youtube.com/watch?v=..."/></div>
+            <div className="text-center text-gray-400 text-xs">— o —</div>
+            <label className="block border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:border-ep-navy transition-colors">
+              <Film className="w-6 h-6 text-gray-400 mx-auto mb-1"/>
+              <span className="text-sm text-gray-500">{videoFile ? `✅ ${videoFile.name} (${(videoFile.size/1024/1024).toFixed(1)}MB)` : 'Subir video desde mi galería'}</span>
+              <input type="file" accept="video/*" onChange={e => { const f=e.target.files?.[0]; if(f) { setVideoFile(f); setForm(fo=>({...fo, video_url:''})); } }} className="hidden"/>
+            </label>
+            {videoFile && <button onClick={() => setVideoFile(null)} className="text-red-500 text-xs font-medium">✕ Quitar video</button>}
+          </div>
           <div className="bg-white rounded-xl border p-5">
             <div className="flex justify-between mb-3"><h2 className="font-bold text-sm">⚙️ Especificaciones</h2>
-              <button onClick={()=>setSpecs(s=>[...s,{key:'',value:''}])} className="text-ep-navy text-xs font-semibold flex items-center gap-1"><Plus className="w-3 h-3"/>Agregar</button></div>
+              <button onClick={()=>setSpecs(s=>[...s,{key:'',value:''}])} className="text-ep-navy text-xs font-semibold"><Plus className="w-3 h-3 inline mr-1"/>Agregar</button></div>
             {specs.map((s,i)=>(
               <div key={i} className="grid grid-cols-[1fr_1fr_36px] gap-2 mb-2">
-                <input value={s.key} onChange={e=>{const n=[...specs];n[i].key=e.target.value;setSpecs(n);}} className="input-field text-sm" placeholder="Ej: Pantalla"/>
-                <input value={s.value} onChange={e=>{const n=[...specs];n[i].value=e.target.value;setSpecs(n);}} className="input-field text-sm" placeholder="Ej: 5 pulgadas"/>
+                <input value={s.key} onChange={e=>{const n=[...specs];n[i].key=e.target.value;setSpecs(n);}} className="input-field text-sm" placeholder="Pantalla"/>
+                <input value={s.value} onChange={e=>{const n=[...specs];n[i].value=e.target.value;setSpecs(n);}} className="input-field text-sm" placeholder="5 pulgadas"/>
                 <button onClick={()=>setSpecs(s=>s.filter((_,j)=>j!==i))} className="bg-red-50 text-red-500 rounded-lg flex items-center justify-center"><Trash2 className="w-4 h-4"/></button>
               </div>
             ))}
           </div>
           <div className="bg-white rounded-xl border p-5">
             <div className="flex justify-between mb-3"><h2 className="font-bold text-sm">🎨 Variantes</h2>
-              <button onClick={()=>setVariants(v=>[...v,{name:'Color',value:'',price_modifier:'0',stock:'0'}])} className="text-ep-navy text-xs font-semibold flex items-center gap-1"><Plus className="w-3 h-3"/>Agregar</button></div>
+              <button onClick={()=>setVariants(v=>[...v,{name:'Color',value:'',price_modifier:'0',stock:'0'}])} className="text-ep-navy text-xs font-semibold"><Plus className="w-3 h-3 inline mr-1"/>Agregar</button></div>
             {variants.map((v,i)=>(
               <div key={i} className="grid grid-cols-[1fr_1fr_80px_80px_36px] gap-2 mb-2">
                 <input value={v.name} onChange={e=>{const n=[...variants];n[i].name=e.target.value;setVariants(n);}} className="input-field text-sm" placeholder="Color"/>
@@ -138,14 +158,11 @@ export default function NuevoProductoPage() {
             </select>
           </div>
           <div className="bg-white rounded-xl border p-5 space-y-2">
-            <h2 className="font-bold text-sm">👁️ Visibilidad</h2>
             <label className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer">
-              <input type="checkbox" checked={form.is_active} onChange={set('is_active')} className="w-4 h-4 accent-[#1c2f6b]"/>
-              <span className="text-sm">Activo</span>
+              <input type="checkbox" checked={form.is_active} onChange={set('is_active')} className="w-4 h-4 accent-[#1c2f6b]"/><span className="text-sm">Activo</span>
             </label>
             <label className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer">
-              <input type="checkbox" checked={form.is_featured} onChange={set('is_featured')} className="w-4 h-4 accent-[#1c2f6b]"/>
-              <span className="text-sm">Destacado (home)</span>
+              <input type="checkbox" checked={form.is_featured} onChange={set('is_featured')} className="w-4 h-4 accent-[#1c2f6b]"/><span className="text-sm">Destacado (home)</span>
             </label>
           </div>
         </div>
