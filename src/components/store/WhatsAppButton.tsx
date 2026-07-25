@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
 export function WhatsAppButton() {
-  const [wa, setWa] = useState('541138848412');
+  const [wa, setWa] = useState('541144128645');
   useEffect(() => {
     const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     supabase.from('store_settings').select('value').eq('key', 'whatsapp_number').single().then(({ data }) => { if (data?.value) setWa(data.value); });
