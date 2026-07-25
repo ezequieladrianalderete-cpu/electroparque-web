@@ -62,7 +62,7 @@ export default function ConfiguracionPage() {
     ['store_name','Nombre de la tienda','Electro Parque'],
     ['store_tagline','Eslogan','Importación y distribución'],
     ['store_email','Email de contacto','contacto@electroparque.com'],
-    ['whatsapp_number','WhatsApp (con código país, sin +)','541138848412'],
+    ['whatsapp_number','WhatsApp (con código país, sin +)','541144128645'],
     ['store_location','Ubicación','Morón, Buenos Aires'],
     ['shipping_free_threshold','Envío gratis desde ($)','50000'],
     ['shipping_default_cost','Costo envío ($)','2500'],
