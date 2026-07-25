@@ -34,7 +34,7 @@ export default async function HomePage() {
           <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{banner?.subtitle || 'Importación directa de tecnología. Envío GRATIS a todo el país.'}</p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link href={banner?.link_url || '/productos'} className="bg-gradient-to-r from-ep-red to-red-500 hover:from-red-500 hover:to-ep-red text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-xl hover:scale-105 text-lg">{banner?.link_text || 'Ver productos'} →</Link>
-            <a href="https://wa.me/541138848412" className="bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105">💬 Consultar</a>
+            <a href="https://wa.me/541144128645" className="bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105">💬 Consultar</a>
           </div>
         </div>
       </section>
@@ -149,7 +149,7 @@ export default async function HomePage() {
         <div className="relative z-10">
           <h2 className="text-white text-3xl font-extrabold mb-3">¿Necesitás ayuda para elegir?</h2>
           <p className="text-white/80 mb-8 text-lg">Nuestro equipo te asesora por WhatsApp en minutos</p>
-          <a href="https://wa.me/541138848412" className="inline-block bg-white text-ep-navy font-bold px-10 py-4 rounded-2xl hover:scale-110 transition-all duration-300 shadow-xl text-lg">💬 Contactar por WhatsApp</a>
+          <a href="https://wa.me/541144128645" className="inline-block bg-white text-ep-navy font-bold px-10 py-4 rounded-2xl hover:scale-110 transition-all duration-300 shadow-xl text-lg">💬 Contactar por WhatsApp</a>
         </div>
       </section>
     </div>
