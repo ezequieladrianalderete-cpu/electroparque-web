@@ -6,7 +6,7 @@ export default function ContactoPage() {
     <p className="text-gray-500 text-center mb-10">Estamos para ayudarte. Respondemos en menos de 24 horas.</p>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-4">
-        {[[MessageCircle,'WhatsApp','+54 11 3884-8412','https://wa.me/541138848412','text-green-600','bg-green-50'],
+        {[[MessageCircle,'WhatsApp','+54 11 4412-8645','https://wa.me/541144128645','text-green-600','bg-green-50'],
           [Mail,'Email','contacto@electroparque.com','mailto:contacto@electroparque.com','text-blue-600','bg-blue-50'],
           [MapPin,'Ubicación','Morón, Buenos Aires',null,'text-ep-red','bg-red-50'],
           [Clock,'Horario','Lun–Sáb 9:00 a 20:00 hs',null,'text-purple-600','bg-purple-50'],
@@ -22,7 +22,7 @@ export default function ContactoPage() {
       <div className="bg-ep-navy text-white rounded-2xl p-6 flex flex-col justify-center items-center text-center">
         <p className="text-xl font-bold mb-2">💬 Respuesta rápida</p>
         <p className="text-blue-200 text-sm mb-4">La forma más rápida de contactarnos es por WhatsApp. Respondemos en minutos.</p>
-        <a href="https://wa.me/541138848412" target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#20BB5A] text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2">
+        <a href="https://wa.me/541144128645" target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#20BB5A] text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2">
           <MessageCircle className="w-5 h-5"/>Ir al WhatsApp
         </a>
       </div>
