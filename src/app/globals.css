@@ -9,6 +9,49 @@
   --font-sans: system-ui, sans-serif;
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
+.animate-slideDown { animation: slideDown 0.3s ease-out forwards; }
+.animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-scaleIn { animation: scaleIn 0.3s ease-out forwards; }
+
 .label { display:block; font-size:.875rem; font-weight:500; color:#374151; margin-bottom:.375rem; }
-.input-field { width:100%; border:1px solid #e5e7eb; border-radius:.75rem; padding:.625rem 1rem; font-size:.875rem; color:#111827; outline:none; transition:border-color .15s, box-shadow .15s; }
-.input-field:focus { border-color:#1c2f6b; box-shadow:0 0 0 3px rgba(28,47,107,.1); }
+.input-field { width:100%; border:1px solid #e5e7eb; border-radius:.75rem; padding:.625rem 1rem; font-size:.875rem; color:#111827; outline:none; transition:all .2s; }
+.input-field:focus { border-color:#1c2f6b; box-shadow:0 0 0 3px rgba(28,47,107,.1); transform: scale(1.01); }
+.input-field:hover { border-color:#d1d5db; }
+
+html { scroll-behavior: smooth; }
+
+.grid > * { animation: fadeInUp 0.4s ease-out backwards; }
+.grid > *:nth-child(1) { animation-delay: 0s; }
+.grid > *:nth-child(2) { animation-delay: 0.05s; }
+.grid > *:nth-child(3) { animation-delay: 0.1s; }
+.grid > *:nth-child(4) { animation-delay: 0.15s; }
+.grid > *:nth-child(5) { animation-delay: 0.2s; }
+.grid > *:nth-child(6) { animation-delay: 0.25s; }
+.grid > *:nth-child(7) { animation-delay: 0.3s; }
+.grid > *:nth-child(8) { animation-delay: 0.35s; }
+
+section { animation: fadeInUp 0.6s ease-out backwards; }
+button, a { transition: all 0.2s ease; }
