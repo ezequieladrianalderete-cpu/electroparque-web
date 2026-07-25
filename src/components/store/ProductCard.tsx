@@ -1,41 +1,55 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Zap } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
+import { useRouter } from 'next/navigation';
 import type { Product } from '@/types';
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addItem } = useCart();
+  const { addItem, buyNow } = useCart();
+  const router = useRouter();
   const primaryImage = product.images?.find(i => i.is_primary) || product.images?.[0];
   const discount = product.compare_at_price ? Math.round((1 - product.price / product.compare_at_price) * 100) : 0;
 
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    buyNow(product);
+    router.push('/checkout');
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-ep-navy/20 transition-all group">
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-ep-navy/20 transition-all duration-300 group hover:-translate-y-1">
       <Link href={`/productos/${product.slug}`}>
-        <div className="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden">
+        <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
           {primaryImage ? (
-            <Image src={primaryImage.url} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" />
+            <Image src={primaryImage.url} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
           ) : (
-            <span className="text-5xl">📦</span>
+            <span className="text-5xl group-hover:scale-110 transition-transform">📦</span>
           )}
-          {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
-          {product.is_featured && <span className="absolute top-2 right-2 bg-ep-navy text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐</span>}
+          {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">-{discount}%</span>}
+          {product.is_featured && <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
         </div>
       </Link>
       <div className="p-3">
-        {product.category && <p className="text-[10px] text-ep-red font-bold uppercase tracking-wide mb-1">{product.category.name}</p>}
+        {product.category && <p className="text-[10px] text-ep-red font-bold uppercase tracking-wider mb-1">{product.category.name}</p>}
         <Link href={`/productos/${product.slug}`}>
-          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] hover:text-ep-navy">{product.name}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] hover:text-ep-navy transition-colors">{product.name}</h3>
         </Link>
         <div className="flex items-center gap-2 mt-2 mb-3">
-          <span className="text-lg font-extrabold text-ep-navy">{formatPrice(product.price)}</span>
+          <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(product.price)}</span>
           {product.compare_at_price && <span className="text-xs text-gray-400 line-through">{formatPrice(product.compare_at_price)}</span>}
         </div>
-        <button onClick={() => addItem(product)} className="w-full bg-ep-navy hover:bg-ep-red text-white text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5">
-          <ShoppingCart className="w-3.5 h-3.5" /> Agregar
-        </button>
+        <div className="flex gap-1.5">
+          <button onClick={handleBuyNow} className="flex-1 bg-gradient-to-r from-ep-red to-red-600 hover:from-red-600 hover:to-ep-red text-white text-xs font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm hover:shadow-md">
+            <Zap className="w-3 h-3" /> COMPRAR
+          </button>
+          <button onClick={(e) => { e.preventDefault(); addItem(product); }} className="bg-ep-navy hover:bg-ep-navy-light text-white p-2.5 rounded-lg transition-colors" title="Agregar al carrito">
+            <ShoppingCart className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
