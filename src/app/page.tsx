@@ -11,7 +11,7 @@ export default async function HomePage() {
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).order('sort_order').limit(1),
     supabase.from('reviews').select('*').eq('is_approved', true).eq('is_featured', true).limit(6),
-    supabase.from('offers').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+    supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
   ]);
   const banner = banners?.[0];
