@@ -16,7 +16,7 @@ export function Footer() {
     });
   }, []);
 
-  const wa = settings.whatsapp_number || '541138848412';
+  const wa = settings.whatsapp_number || '541144128645';
   const name = settings.store_name || 'Electro Parque';
   const logo = settings.logo_url;
 
