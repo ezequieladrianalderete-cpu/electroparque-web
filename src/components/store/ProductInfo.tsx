@@ -69,7 +69,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>
 
-      <a href="https://wa.me/541138848412" target="_blank" rel="noopener noreferrer"
+      <a href="https://wa.me/541144128645" target="_blank" rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-600 font-semibold py-3 rounded-xl hover:bg-green-50 transition-all hover:shadow-md">
         <MessageCircle className="w-5 h-5" /> Consultar por WhatsApp
       </a>
