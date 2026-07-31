@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque-web.vercel.app';
 
     const preferenceBody = {
       items: verifiedItems,
@@ -65,10 +65,18 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(preferenceBody),
     });
 
-    const mpData = await mpResponse.json();
+    // MercadoPago no siempre devuelve JSON (a veces el cuerpo viene vacío en un error);
+    // leemos como texto primero para nunca reventar con un mensaje confuso.
+    const mpRawText = await mpResponse.text();
+    let mpData: any = {};
+    try { mpData = mpRawText ? JSON.parse(mpRawText) : {}; } catch { mpData = {}; }
 
     if (!mpResponse.ok) {
-      return NextResponse.json({ error: 'Error de MercadoPago: ' + (mpData.message || JSON.stringify(mpData)) }, { status: 400 });
+      return NextResponse.json({ error: `Error de MercadoPago (HTTP ${mpResponse.status}): ${mpData.message || mpRawText || 'sin detalle'}` }, { status: 400 });
+    }
+
+    if (!mpData.init_point) {
+      return NextResponse.json({ error: `MercadoPago no devolvió un link de pago (HTTP ${mpResponse.status}): ${mpRawText || 'respuesta vacía'}` }, { status: 400 });
     }
 
     return NextResponse.json({
