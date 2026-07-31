@@ -18,6 +18,8 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
 
   const handleBuyNow = () => { buyNow(product, variant, qty); router.push('/checkout'); };
 
+  const waMsg = `Hola! Estoy interesado en:\n\n📦 *${product.name}*${variant ? `\n🎨 ${variant.name}: ${variant.value}` : ''}\n💰 Precio: ${formatPrice(finalPrice)}\n🔢 Cantidad: ${qty}\n\n¿Está disponible? Quiero más info.`;
+
   return (
     <div className="space-y-5">
       {product.category && <span className="text-ep-red text-xs font-bold uppercase tracking-wider animate-pulse">{product.category.name}</span>}
@@ -53,23 +55,23 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
 
       <div className="flex gap-3 items-center">
         <div className="flex items-center border-2 rounded-xl overflow-hidden">
-          <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-lg hover:bg-gray-50 transition-colors">−</button>
+          <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-lg hover:bg-gray-50">−</button>
           <span className="px-4 font-bold border-x">{qty}</span>
-          <button onClick={() => setQty(qty + 1)} className="px-3 py-2 text-lg hover:bg-gray-50 transition-colors">+</button>
+          <button onClick={() => setQty(qty + 1)} className="px-3 py-2 text-lg hover:bg-gray-50">+</button>
         </div>
       </div>
 
       <button onClick={handleBuyNow}
-        className="w-full bg-gradient-to-r from-ep-red to-red-600 hover:from-red-600 hover:to-ep-red text-white font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-lg shadow-red-200 hover:shadow-xl hover:shadow-red-300 hover:scale-[1.02] active:scale-[0.98]">
+        className="w-full bg-gradient-to-r from-ep-red to-red-600 hover:from-red-600 hover:to-ep-red text-white font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-lg shadow-red-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]">
         <Zap className="w-5 h-5" /> COMPRAR AHORA
       </button>
 
       <button onClick={() => { for (let i = 0; i < qty; i++) addItem(product, variant); }}
-        className="w-full bg-gradient-to-r from-ep-navy to-blue-700 hover:from-blue-700 hover:to-ep-navy text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:shadow-lg">
+        className="w-full bg-gradient-to-r from-ep-navy to-blue-700 hover:from-blue-700 hover:to-ep-navy text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:shadow-lg">
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>
 
-      <a href="https://wa.me/541144128645" target="_blank" rel="noopener noreferrer"
+      <a href={`https://wa.me/541144128645?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-600 font-semibold py-3 rounded-xl hover:bg-green-50 transition-all hover:shadow-md">
         <MessageCircle className="w-5 h-5" /> Consultar por WhatsApp
       </a>
