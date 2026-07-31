@@ -8,9 +8,10 @@ interface Props { searchParams: Promise<{ q?: string }> }
 export default async function BuscarPage({ searchParams }: Props) {
   const { q } = await searchParams;
   let products: Product[] = [];
-  if (q?.trim()) {
+  const safeQ = q?.replace(/[,()]/g, ' ').trim();
+  if (safeQ) {
     const supabase = await createClient();
-    const { data } = await supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).or(`name.ilike.%${q}%,short_description.ilike.%${q}%`);
+    const { data } = await supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).or(`name.ilike.%${safeQ}%,short_description.ilike.%${safeQ}%`);
     products = (data || []) as unknown as Product[];
   }
   return (<div className="max-w-7xl mx-auto px-4 py-10">

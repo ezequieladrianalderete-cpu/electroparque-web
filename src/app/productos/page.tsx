@@ -13,7 +13,8 @@ export default async function ProductosPage({ searchParams }: Props) {
     const { data: cat } = await supabase.from('categories').select('id').eq('slug', params.categoria).single();
     if (cat) query = query.eq('category_id', cat.id);
   }
-  if (params.q) query = query.or(`name.ilike.%${params.q}%,short_description.ilike.%${params.q}%`);
+  const safeQ = params.q?.replace(/[,()]/g, ' ').trim();
+  if (safeQ) query = query.or(`name.ilike.%${safeQ}%,short_description.ilike.%${safeQ}%`);
   query = query.order('is_featured', { ascending: false }).order('sort_order');
   const { data: products } = await query;
   const { data: categories } = await supabase.from('categories').select('*').eq('is_active', true).order('sort_order');

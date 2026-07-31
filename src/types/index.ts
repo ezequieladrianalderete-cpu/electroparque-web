@@ -19,11 +19,13 @@ export interface Product {
 }
 export interface Banner {
   id: string; title: string | null; subtitle: string | null; image_url: string;
+  video_url: string | null; placement: 'hero' | 'promo';
   link_url: string | null; link_text: string | null; is_active: boolean; sort_order: number;
 }
 export interface Review {
   id: string; product_id: string; customer_name: string; rating: number;
-  title: string | null; comment: string; is_approved: boolean; is_featured: boolean;
+  title: string | null; comment: string; customer_photo_url: string | null;
+  is_approved: boolean; is_featured: boolean;
   created_at: string;
 }
 export interface CartItem { product: Product; variant?: ProductVariant; quantity: number; }

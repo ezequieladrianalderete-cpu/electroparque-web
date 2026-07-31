@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <span className="text-5xl group-hover:scale-110 transition-transform">📦</span>
           )}
-          {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">-{discount}%</span>}
+          {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
           {product.is_featured && <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
         </div>
       </Link>

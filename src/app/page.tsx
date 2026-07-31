@@ -1,43 +1,29 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { ProductCard } from '@/components/store/ProductCard';
+import { HeroCarousel } from '@/components/store/HeroCarousel';
+import { VideoBanner } from '@/components/store/VideoBanner';
 import Link from 'next/link';
-import type { Product } from '@/types';
+import type { Product, Banner } from '@/types';
 import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: banners }, { data: reviews }, { data: offers }, { data: categories }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
-    supabase.from('banners').select('*').eq('is_active', true).order('sort_order').limit(1),
+    supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
+    supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
     supabase.from('reviews').select('*').eq('is_approved', true).eq('is_featured', true).limit(6),
+    supabase.from('reviews').select('rating').eq('is_approved', true),
     supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
   ]);
-  const banner = banners?.[0];
+  const reviewCount = allRatings?.length || 0;
+  const avgRating = reviewCount > 0 ? (allRatings!.reduce((sum, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1) : null;
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-24 px-4">
-        <div className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle at 20% 50%, #3b82f6 0%, transparent 50%), radial-gradient(circle at 80% 20%, #e10600 0%, transparent 40%), radial-gradient(circle at 60% 80%, #1e40af 0%, transparent 50%)'}}/>
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-ep-red/10 rounded-full blur-3xl animate-float"/>
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl animate-float" style={{animationDelay:'1.5s'}}/>
-        </div>
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-xs font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-lg shadow-red-500/30 animate-pulse">🆕 {banner?.title || 'Tecnología de punta'}</span>
-          <h1 className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6">
-            <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">CONECTIVIDAD</span>
-            <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2">INTELIGENTE</span>
-          </h1>
-          <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{banner?.subtitle || 'Importación directa de tecnología. Envío GRATIS a todo el país.'}</p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link href={banner?.link_url || '/productos'} className="bg-gradient-to-r from-ep-red to-red-500 hover:from-red-500 hover:to-ep-red text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-xl hover:scale-105 text-lg">{banner?.link_text || 'Ver productos'} →</Link>
-            <a href="https://wa.me/541144128645" className="bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105">💬 Consultar</a>
-          </div>
-        </div>
-      </section>
+      <HeroCarousel banners={(heroBanners as unknown as Banner[]) || []} />
 
       {/* Trust badges */}
       <div className="bg-gradient-to-r from-white via-gray-50 to-white border-y py-6 px-4">
@@ -55,17 +41,21 @@ export default async function HomePage() {
       {/* Categories */}
       {categories && categories.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 py-14">
-          <h2 className="text-2xl font-extrabold text-center mb-2 bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">Explorá por categoría</h2>
+          <h2 className="text-2xl font-extrabold text-center mb-2 text-ep-navy">Explorá por categoría</h2>
           <p className="text-gray-400 text-center text-sm mb-8">Encontrá lo que buscás rápido</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {categories.map((c: any, i: number) => (
+            {categories.map((c: any) => (
               <Link key={c.id} href={`/productos?categoria=${c.slug}`}
-                className="group relative bg-gradient-to-br from-ep-navy to-blue-700 rounded-2xl p-6 text-center text-white overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
-                style={{animationDelay: `${i * 0.1}s`}}>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"/>
+                className="group relative bg-gradient-to-br from-ep-navy to-blue-700 rounded-2xl p-6 text-center text-white overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105">
+                {c.image_url && (
+                  <div className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:opacity-60 transition-opacity duration-300" style={{ backgroundImage: `url(${c.image_url})` }} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"/>
                 <div className="relative z-10">
-                  <span className="text-3xl block mb-2 group-hover:scale-125 transition-transform duration-300">{['🎵','🏍️','📡','⚡'][i % 4]}</span>
-                  <p className="font-bold text-sm">{c.name}</p>
+                  {!c.image_url && (
+                    <span className="w-10 h-10 mx-auto mb-2 rounded-full bg-white/15 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform duration-300">{c.name?.[0]?.toUpperCase()}</span>
+                  )}
+                  <p className="font-bold text-sm mt-2">{c.name}</p>
                 </div>
               </Link>
             ))}
@@ -105,7 +95,7 @@ export default async function HomePage() {
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">Productos destacados</h2>
+            <h2 className="text-3xl font-extrabold text-ep-navy">Productos destacados</h2>
             <p className="text-gray-400 text-sm mt-1">Lo que más eligen nuestros clientes</p>
           </div>
           <Link href="/productos" className="text-ep-navy font-semibold text-sm hover:text-ep-red transition-colors">Ver todos →</Link>
@@ -123,17 +113,25 @@ export default async function HomePage() {
       {reviews && reviews.length > 0 && (
         <section className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 py-16 px-4">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-extrabold text-center mb-2 bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">Lo que dicen nuestros clientes</h2>
-            <div className="flex justify-center items-center gap-2 mb-10">
-              <span className="text-yellow-400 text-lg">★★★★★</span><span className="font-bold">4.9</span><span className="text-gray-500 text-sm">· +500 clientes</span>
-            </div>
+            <h2 className="text-3xl font-extrabold text-center mb-2 text-ep-navy">Lo que dicen nuestros clientes</h2>
+            {avgRating && (
+              <div className="flex justify-center items-center gap-2 mb-10">
+                <span className="text-yellow-400 text-lg">{'★'.repeat(Math.round(parseFloat(avgRating)))}</span>
+                <span className="font-bold">{avgRating}</span>
+                <span className="text-gray-500 text-sm">· {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {reviews.map((r: any, i: number) => (
                 <div key={r.id} className="bg-white rounded-2xl p-6 border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1" style={{animationDelay: `${i * 0.1}s`}}>
                   <div className="text-yellow-400 text-sm mb-3">{'★'.repeat(r.rating)}</div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-4 italic">&ldquo;{r.comment}&rdquo;</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-ep-navy to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{r.customer_name?.[0]}</div>
+                    {r.customer_photo_url ? (
+                      <img src={r.customer_photo_url} alt={r.customer_name} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 bg-gradient-to-br from-ep-navy to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{r.customer_name?.[0]}</div>
+                    )}
                     <p className="text-sm font-semibold">{r.customer_name}</p>
                   </div>
                 </div>
@@ -152,6 +150,8 @@ export default async function HomePage() {
           <a href="https://wa.me/541144128645" className="inline-block bg-white text-ep-navy font-bold px-10 py-4 rounded-2xl hover:scale-110 transition-all duration-300 shadow-xl text-lg">💬 Contactar por WhatsApp</a>
         </div>
       </section>
+
+      {((promoBanners as unknown as Banner[]) || []).map(b => <VideoBanner key={b.id} banner={b} />)}
     </div>
   );
 }

@@ -33,6 +33,7 @@ export default function CheckoutPage() {
       items: items.map(i => ({
         product_id: i.product.id, name: i.product.name, slug: i.product.slug,
         price: i.product.price, variant: i.variant ? `${i.variant.name}: ${i.variant.value}` : null,
+        variant_id: i.variant?.id || null,
         quantity: i.quantity, subtotal: (i.product.price + (i.variant?.price_modifier || 0)) * i.quantity,
       })),
       subtotal: total(), shipping_cost: 0, discount_amount: 0, total: total(),

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CategoriasPage() {
@@ -12,6 +12,17 @@ export default function CategoriasPage() {
 
   useEffect(() => { load(); }, []);
   const load = async () => { const { data } = await supabase.from('categories').select('*').order('sort_order'); setCats(data || []); };
+
+  const uploadImage = async (id: string, file?: File) => {
+    if (!file) return;
+    const path = `category-${Date.now()}.${file.name.split('.').pop()}`;
+    const { error } = await supabase.storage.from('products').upload(path, file);
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path);
+      await supabase.from('categories').update({ image_url: publicUrl }).eq('id', id);
+      await load();
+    }
+  };
 
   const add = async () => {
     if (!newCat.name.trim()) return;
@@ -46,9 +57,14 @@ export default function CategoriasPage() {
             <button onClick={add} disabled={saving} className="bg-ep-navy text-white font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"><Plus className="w-4 h-4"/>Crear</button>
           </div>
         </div>
+        <p className="text-sm text-gray-500">Tocá la miniatura de una categoría para subirle una imagen — así se muestra en la portada en vez de un ícono genérico.</p>
         <div className="bg-white rounded-xl border divide-y">
           {cats.map(c => (
             <div key={c.id} className="flex items-center gap-4 px-5 py-3">
+              <label className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center cursor-pointer hover:opacity-80" title="Subir/cambiar imagen">
+                {c.image_url ? <img src={c.image_url} alt="" className="w-full h-full object-cover"/> : <span className="text-gray-300 text-[10px] text-center">Sin img</span>}
+                <input type="file" accept="image/*" className="hidden" onChange={e => uploadImage(c.id, e.target.files?.[0])}/>
+              </label>
               <div className="flex-1"><p className="font-semibold text-sm">{c.name}</p><p className="text-xs text-gray-400 font-mono">/{c.slug}</p></div>
               <button onClick={() => toggle(c.id, c.is_active)} className={`text-xs font-bold px-3 py-1 rounded-full ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{c.is_active ? 'Activa' : 'Inactiva'}</button>
               <button onClick={() => remove(c.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>

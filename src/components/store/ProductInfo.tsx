@@ -22,7 +22,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
 
   return (
     <div className="space-y-5">
-      {product.category && <span className="text-ep-red text-xs font-bold uppercase tracking-wider animate-pulse">{product.category.name}</span>}
+      {product.category && <span className="text-ep-red text-xs font-bold uppercase tracking-wider">{product.category.name}</span>}
       <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
 
       {avgRating && (
@@ -36,7 +36,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
       <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border flex flex-wrap items-end gap-3">
         <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
         {product.compare_at_price && <span className="text-lg text-gray-400 line-through">{formatPrice(product.compare_at_price)}</span>}
-        {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
+        {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
       </div>
 
       {product.variants && product.variants.length > 0 && (
@@ -67,7 +67,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
       </button>
 
       <button onClick={() => { for (let i = 0; i < qty; i++) addItem(product, variant); }}
-        className="w-full bg-gradient-to-r from-ep-navy to-blue-700 hover:from-blue-700 hover:to-ep-navy text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:shadow-lg">
+        className="w-full border-2 border-ep-navy text-ep-navy hover:bg-ep-navy hover:text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>
 

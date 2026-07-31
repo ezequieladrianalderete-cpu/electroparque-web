@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,16 +11,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'MercadoPago no configurado. Falta MERCADOPAGO_ACCESS_TOKEN en Vercel.' }, { status: 500 });
     }
 
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
+    }
+
+    // Nunca confiar en el precio que manda el navegador: se vuelve a buscar
+    // cada precio real en Supabase para armar el pago con el monto correcto.
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+    const verifiedItems = [];
+    for (const item of items) {
+      const productId = item.product_id || item.id;
+      const { data: product } = await supabase.from('products').select('id,name,price').eq('id', productId).eq('is_active', true).single();
+      if (!product) {
+        return NextResponse.json({ error: `Producto no disponible: ${item.name || productId}` }, { status: 400 });
+      }
+      let priceModifier = 0;
+      if (item.variant_id) {
+        const { data: variant } = await supabase.from('product_variants').select('price_modifier').eq('id', item.variant_id).eq('product_id', productId).single();
+        priceModifier = Number(variant?.price_modifier) || 0;
+      }
+      const quantity = Math.max(1, Math.min(100, Math.floor(Number(item.quantity)) || 1));
+      verifiedItems.push({
+        id: product.id,
+        title: product.name,
+        quantity,
+        unit_price: Number(product.price) + priceModifier,
+        currency_id: 'ARS',
+      });
+    }
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque.vercel.app';
 
     const preferenceBody = {
-      items: (items || []).map((item: any) => ({
-        id: item.product_id || item.id || 'prod',
-        title: item.name || 'Producto',
-        quantity: Number(item.quantity) || 1,
-        unit_price: Number(item.price) || 0,
-        currency_id: 'ARS',
-      })),
+      items: verifiedItems,
       back_urls: {
         success: `${baseUrl}/checkout/resultado?status=success&order=${orderId}`,
         failure: `${baseUrl}/checkout/resultado?status=failure&order=${orderId}`,
