@@ -1,37 +1,44 @@
-import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  if (body.type === 'payment') {
-    const client = new MercadoPagoConfig({
-      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-    });
+    // MercadoPago envía notificación de tipo "payment"
+    if (body.type === 'payment' || body.action === 'payment.updated' || body.action === 'payment.created') {
+      const paymentId = body.data?.id;
+      if (!paymentId) return NextResponse.json({ ok: true });
 
-    const payment = new Payment(client);
-    const paymentData = await payment.get({ id: body.data.id });
+      // Consultar el pago en MercadoPago
+      const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: { 'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` },
+      });
+      const payment = await mpRes.json();
 
-    if (paymentData.external_reference) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      if (payment.external_reference) {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-      let newStatus = 'pending';
-      if (paymentData.status === 'approved') newStatus = 'paid';
-      else if (paymentData.status === 'pending' || paymentData.status === 'in_process') newStatus = 'pending';
-      else if (paymentData.status === 'rejected') newStatus = 'cancelled';
+        let newStatus = 'pending';
+        if (payment.status === 'approved') newStatus = 'paid';
+        else if (payment.status === 'pending' || payment.status === 'in_process') newStatus = 'pending';
+        else if (payment.status === 'rejected' || payment.status === 'cancelled') newStatus = 'cancelled';
+        else if (payment.status === 'refunded') newStatus = 'cancelled';
 
-      await supabase.from('orders').update({
-        status: newStatus,
-        payment_id: String(paymentData.id),
-        mp_preference_id: paymentData.order?.id ? String(paymentData.order.id) : null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', paymentData.external_reference);
+        await supabase.from('orders').update({
+          status: newStatus,
+          payment_id: String(paymentId),
+          updated_at: new Date().toISOString(),
+        }).eq('id', payment.external_reference);
+      }
     }
-  }
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    // Siempre devolver 200 para que MP no reintente infinitamente
+    return NextResponse.json({ ok: true });
+  }
 }
