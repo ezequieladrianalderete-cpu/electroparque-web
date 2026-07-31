@@ -1,24 +1,23 @@
-import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { items, orderId, customerEmail } = await req.json();
+  try {
+    const body = await req.json();
+    const { items, orderId, customerEmail } = body;
 
-  const client = new MercadoPagoConfig({
-    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-  });
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!accessToken) {
+      return NextResponse.json({ error: 'MercadoPago no configurado. Falta MERCADOPAGO_ACCESS_TOKEN en Vercel.' }, { status: 500 });
+    }
 
-  const preference = new Preference(client);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque.vercel.app';
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque.vercel.app';
-
-  const result = await preference.create({
-    body: {
-      items: items.map((item: any) => ({
-        id: item.product_id || item.id,
-        title: item.name,
-        quantity: item.quantity,
-        unit_price: Number(item.price),
+    const preferenceBody = {
+      items: (items || []).map((item: any) => ({
+        id: item.product_id || item.id || 'prod',
+        title: item.name || 'Producto',
+        quantity: Number(item.quantity) || 1,
+        unit_price: Number(item.price) || 0,
         currency_id: 'ARS',
       })),
       back_urls: {
@@ -27,14 +26,32 @@ export async function POST(req: NextRequest) {
         pending: `${baseUrl}/checkout/resultado?status=pending&order=${orderId}`,
       },
       auto_return: 'approved',
-      external_reference: orderId,
+      external_reference: orderId || '',
       notification_url: `${baseUrl}/api/webhook/mp`,
-      payer: customerEmail ? { email: customerEmail } : undefined,
-    },
-  });
+      ...(customerEmail ? { payer: { email: customerEmail } } : {}),
+    };
 
-  return NextResponse.json({
-    id: result.id,
-    init_point: result.init_point,
-  });
+    const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(preferenceBody),
+    });
+
+    const mpData = await mpResponse.json();
+
+    if (!mpResponse.ok) {
+      return NextResponse.json({ error: 'Error de MercadoPago: ' + (mpData.message || JSON.stringify(mpData)) }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      id: mpData.id,
+      init_point: mpData.init_point,
+    });
+
+  } catch (err: any) {
+    return NextResponse.json({ error: 'Error interno: ' + (err.message || 'desconocido') }, { status: 500 });
+  }
 }
