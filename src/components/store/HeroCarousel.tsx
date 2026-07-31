@@ -23,11 +23,11 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
   const heroLine2 = heroWords.slice(heroMid).join(' ');
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-24 px-4">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-24 px-4 min-h-[560px] sm:min-h-[640px] flex items-center">
       {banner?.image_url && (
         <>
           <div key={banner.id} className="absolute inset-0 bg-cover bg-center animate-scaleIn" style={{ backgroundImage: `url(${banner.image_url})` }} />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#070e27]/90 via-ep-navy/85 to-[#1a3a8f]/85" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#070e27]/65 via-ep-navy/55 to-[#1a3a8f]/60" />
         </>
       )}
       <div className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle at 20% 50%, #3b82f6 0%, transparent 50%), radial-gradient(circle at 80% 20%, #e10600 0%, transparent 40%), radial-gradient(circle at 60% 80%, #1e40af 0%, transparent 50%)'}}/>
@@ -36,7 +36,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl animate-float" style={{animationDelay:'1.5s'}}/>
       </div>
 
-      <div className="max-w-5xl mx-auto text-center relative z-10">
+      <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
         <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-xs font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-lg shadow-red-500/30">🆕 Nuevo</span>
         <h1 key={`title-${index}`} className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6 animate-fadeInUp">
           <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">{heroLine1}</span>

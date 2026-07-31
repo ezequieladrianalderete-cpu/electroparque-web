@@ -16,7 +16,7 @@ export function VideoBanner({ banner }: { banner: Banner }) {
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-ep-navy to-blue-800" />
       )}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-gradient-to-br from-ep-navy/60 via-ep-navy/40 to-black/45" />
       <div className="max-w-3xl mx-auto text-center relative z-10 w-full">
         {banner.title && <h2 className="text-3xl sm:text-4xl font-extrabold mb-3">{banner.title}</h2>}
         {banner.subtitle && <p className="text-white/85 text-lg mb-8 leading-relaxed">{banner.subtitle}</p>}
