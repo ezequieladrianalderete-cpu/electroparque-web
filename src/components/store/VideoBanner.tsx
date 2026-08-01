@@ -3,16 +3,19 @@ import type { Banner } from '@/types';
 
 export function VideoBanner({ banner }: { banner: Banner }) {
   return (
-    <section className="relative overflow-hidden text-white px-4 py-16 min-h-[70vh] sm:min-h-[600px] flex items-center">
+    <section className="relative overflow-hidden text-white px-4 py-14 sm:py-16 min-h-[420px] sm:min-h-[500px] md:min-h-[600px] flex items-center">
       {banner.video_url ? (
         <video
           className="absolute inset-0 w-full h-full object-cover"
           src={banner.video_url}
-          poster={banner.image_url || undefined}
+          poster={banner.image_mobile_url || banner.image_url || undefined}
           autoPlay muted loop playsInline
         />
       ) : banner.image_url ? (
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${banner.image_url})` }} />
+        <>
+          <div className="absolute inset-0 bg-cover bg-center block sm:hidden" style={{ backgroundImage: `url(${banner.image_mobile_url || banner.image_url})` }} />
+          <div className="absolute inset-0 bg-cover bg-center hidden sm:block" style={{ backgroundImage: `url(${banner.image_url})` }} />
+        </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-ep-navy to-blue-800" />
       )}

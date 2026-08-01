@@ -23,10 +23,11 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
   const heroLine2 = heroWords.slice(heroMid).join(' ');
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-24 px-4 min-h-[560px] sm:min-h-[640px] flex items-center">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-14 sm:py-20 md:py-24 px-4 min-h-[420px] sm:min-h-[500px] md:min-h-[580px] lg:min-h-[640px] flex items-center">
       {banner?.image_url && (
         <>
-          <div key={banner.id} className="absolute inset-0 bg-cover bg-center animate-scaleIn" style={{ backgroundImage: `url(${banner.image_url})` }} />
+          <div key={`${banner.id}-mobile`} className="absolute inset-0 bg-cover bg-center animate-scaleIn block sm:hidden" style={{ backgroundImage: `url(${banner.image_mobile_url || banner.image_url})` }} />
+          <div key={`${banner.id}-desktop`} className="absolute inset-0 bg-cover bg-center animate-scaleIn hidden sm:block" style={{ backgroundImage: `url(${banner.image_url})` }} />
           <div className="absolute inset-0 bg-gradient-to-br from-[#070e27]/65 via-ep-navy/55 to-[#1a3a8f]/60" />
         </>
       )}

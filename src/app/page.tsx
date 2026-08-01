@@ -44,7 +44,7 @@ export default async function HomePage() {
           <h2 className="text-2xl font-extrabold text-center mb-2 text-ep-navy">Explorá por categoría</h2>
           <p className="text-gray-400 text-center text-sm mb-8">Encontrá lo que buscás rápido</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {categories.map((c: any) => (
+            {categories.map((c: any, i: number) => (
               <Link key={c.id} href={`/productos?categoria=${c.slug}`}
                 className="group relative bg-gradient-to-br from-ep-navy to-blue-700 rounded-2xl p-6 text-center text-white overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105">
                 {c.image_url && (
@@ -53,7 +53,7 @@ export default async function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"/>
                 <div className="relative z-10">
                   {!c.image_url && (
-                    <span className="w-10 h-10 mx-auto mb-2 rounded-full bg-white/15 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform duration-300">{c.name?.[0]?.toUpperCase()}</span>
+                    <span className="text-3xl block mb-2 group-hover:scale-125 transition-transform duration-300">{['🎵','🏍️','📡','⚡'][i % 4]}</span>
                   )}
                   <p className="font-bold text-sm mt-2">{c.name}</p>
                 </div>

@@ -25,7 +25,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div>
-            {logo ? <img src={logo} alt={name} className="h-10 w-auto max-w-[180px] mb-3 brightness-0 invert"/> : (
+            {logo ? <img src={logo} alt={name} className="h-14 sm:h-20 lg:h-24 w-auto max-w-[200px] sm:max-w-[300px] lg:max-w-[380px] mb-3 brightness-0 invert"/> : (
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-9 h-9 bg-ep-red rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">EP</span></div>
                 <div className="font-bold text-lg">{name}</div>

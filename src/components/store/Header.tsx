@@ -28,10 +28,10 @@ export function Header() {
         🚚 ¡Envío GRATIS en todas las compras! · 📞 11 4412-8645
       </div>
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16 sm:h-20 md:h-24 lg:h-28">
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity min-w-0">
             {logo ? (
-              <img src={logo} alt={storeName} className="h-12 w-auto max-w-[220px] object-contain" />
+              <img src={logo} alt={storeName} className="h-10 sm:h-14 md:h-20 lg:h-24 w-auto max-w-[140px] sm:max-w-[200px] md:max-w-[300px] lg:max-w-[380px] object-contain flex-shrink-0" />
             ) : (
               <>
                 <div className="w-10 h-10 bg-gradient-to-br from-ep-navy to-blue-600 rounded-xl flex items-center justify-center shadow-md">
