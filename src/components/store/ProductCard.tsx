@@ -5,18 +5,25 @@ import { ShoppingCart, Zap } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
 import { useRouter } from 'next/navigation';
+import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import type { Product } from '@/types';
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, offers = [] }: { product: Product; offers?: OfferLike[] }) {
   const { addItem, buyNow } = useCart();
   const router = useRouter();
   const primaryImage = product.images?.find(i => i.is_primary) || product.images?.[0];
-  const discount = product.compare_at_price ? Math.round((1 - product.price / product.compare_at_price) * 100) : 0;
+
+  const activeOffer = findActiveOffer(offers, { id: product.id, category_id: product.category_id });
+  const effectivePrice = activeOffer ? applyOffer(product.price, activeOffer) : product.price;
+  const referencePrice = activeOffer ? product.price : product.compare_at_price;
+  const discount = referencePrice ? Math.round((1 - effectivePrice / referencePrice) * 100) : 0;
+  // Si hay oferta activa, el carrito debe usar el precio ya descontado (no el de lista).
+  const cartProduct = activeOffer ? { ...product, price: effectivePrice, compare_at_price: product.price } : product;
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    buyNow(product);
+    buyNow(cartProduct);
     router.push('/checkout');
   };
 
@@ -39,14 +46,14 @@ export function ProductCard({ product }: { product: Product }) {
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] hover:text-ep-navy transition-colors">{product.name}</h3>
         </Link>
         <div className="flex items-center gap-2 mt-2 mb-3">
-          <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(product.price)}</span>
-          {product.compare_at_price && <span className="text-xs text-gray-400 line-through">{formatPrice(product.compare_at_price)}</span>}
+          <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(effectivePrice)}</span>
+          {referencePrice && <span className="text-xs text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
         </div>
         <div className="flex gap-1.5">
           <button onClick={handleBuyNow} className="flex-1 bg-gradient-to-r from-ep-red to-red-600 hover:from-red-600 hover:to-ep-red text-white text-xs font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm hover:shadow-md">
             <Zap className="w-3 h-3" /> COMPRAR
           </button>
-          <button onClick={(e) => { e.preventDefault(); addItem(product); }} className="bg-ep-navy hover:bg-ep-navy-light text-white p-2.5 rounded-lg transition-colors" title="Agregar al carrito">
+          <button onClick={(e) => { e.preventDefault(); addItem(cartProduct); }} className="bg-ep-navy hover:bg-ep-navy-light text-white p-2.5 rounded-lg transition-colors" title="Agregar al carrito">
             <ShoppingCart className="w-3.5 h-3.5" />
           </button>
         </div>

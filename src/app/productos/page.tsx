@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { ProductCard } from '@/components/store/ProductCard';
 import type { Product } from '@/types';
+import type { OfferLike } from '@/lib/offers';
 
 interface Props { searchParams: Promise<{ categoria?: string; orden?: string; q?: string }> }
 
@@ -18,6 +19,7 @@ export default async function ProductosPage({ searchParams }: Props) {
   query = query.order('is_featured', { ascending: false }).order('sort_order');
   const { data: products } = await query;
   const { data: categories } = await supabase.from('categories').select('*').eq('is_active', true).order('sort_order');
+  const { data: offers } = await supabase.from('offers').select('*').eq('is_active', true);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -39,7 +41,7 @@ export default async function ProductosPage({ searchParams }: Props) {
           {(products||[]).length === 0 ? (
             <div className="text-center py-20 text-gray-400"><p className="text-lg font-medium">No hay productos disponibles</p></div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{(products as unknown as Product[]).map(p=><ProductCard key={p.id} product={p}/>)}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{(products as unknown as Product[]).map(p=><ProductCard key={p.id} product={p} offers={(offers as unknown as OfferLike[]) || []}/>)}</div>
           )}
         </div>
       </div>

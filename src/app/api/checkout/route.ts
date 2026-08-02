@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { findActiveOffer, applyOffer } from '@/lib/offers';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,11 +19,12 @@ export async function POST(req: NextRequest) {
     // Nunca confiar en el precio que manda el navegador: se vuelve a buscar
     // cada precio real en Supabase para armar el pago con el monto correcto.
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const { data: activeOffers } = await supabase.from('offers').select('*').eq('is_active', true);
 
     const verifiedItems = [];
     for (const item of items) {
       const productId = item.product_id || item.id;
-      const { data: product } = await supabase.from('products').select('id,name,price').eq('id', productId).eq('is_active', true).single();
+      const { data: product } = await supabase.from('products').select('id,name,price,category_id').eq('id', productId).eq('is_active', true).single();
       if (!product) {
         return NextResponse.json({ error: `Producto no disponible: ${item.name || productId}` }, { status: 400 });
       }
@@ -31,12 +33,14 @@ export async function POST(req: NextRequest) {
         const { data: variant } = await supabase.from('product_variants').select('price_modifier').eq('id', item.variant_id).eq('product_id', productId).single();
         priceModifier = Number(variant?.price_modifier) || 0;
       }
+      const offer = findActiveOffer(activeOffers || [], { id: product.id, category_id: product.category_id });
+      const basePrice = applyOffer(Number(product.price), offer);
       const quantity = Math.max(1, Math.min(100, Math.floor(Number(item.quantity)) || 1));
       verifiedItems.push({
         id: product.id,
         title: product.name,
         quantity,
-        unit_price: Number(product.price) + priceModifier,
+        unit_price: basePrice + priceModifier,
         currency_id: 'ARS',
       });
     }

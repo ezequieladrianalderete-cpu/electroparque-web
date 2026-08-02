@@ -6,22 +6,26 @@ import { VideoBanner } from '@/components/store/VideoBanner';
 import { VideoTestimonialCarousel } from '@/components/store/VideoTestimonialCarousel';
 import Link from 'next/link';
 import type { Product, Banner, VideoTestimonial } from '@/types';
+import type { OfferLike } from '@/lib/offers';
 import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
     supabase.from('reviews').select('*').eq('is_approved', true).eq('is_featured', true).limit(6),
     supabase.from('reviews').select('rating').eq('is_approved', true),
     supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
+    supabase.from('offers').select('*').eq('is_active', true),
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('video_testimonials').select('*').eq('is_active', true).order('sort_order'),
-    supabase.from('store_settings').select('key,value').eq('key', 'whatsapp_number'),
+    supabase.from('store_settings').select('key,value').in('key', ['whatsapp_number', 'offers_bg_image_url']),
   ]);
+  const offers = countdownOffers;
   const whatsappNumber = settingsRows?.find(s => s.key === 'whatsapp_number')?.value || '541144128645';
+  const offersBgImage = settingsRows?.find(s => s.key === 'offers_bg_image_url')?.value || '';
   const reviewCount = allRatings?.length || 0;
   const avgRating = reviewCount > 0 ? (allRatings!.reduce((sum, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1) : null;
 
@@ -70,15 +74,21 @@ export default async function HomePage() {
       {/* Offers with countdown */}
       {offers && offers.length > 0 && (
         <section className="relative bg-gradient-to-br from-[#0a0f2e] via-ep-navy to-[#1a3a8f] py-16 px-4 overflow-hidden">
+          {offersBgImage && (
+            <>
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${offersBgImage})` }} />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f2e]/85 via-ep-navy/75 to-[#1a3a8f]/80" />
+            </>
+          )}
           <div className="absolute inset-0 opacity-30" style={{backgroundImage:'radial-gradient(circle at 30% 70%, #e10600 0%, transparent 40%)'}}/>
-          <div className="max-w-5xl mx-auto relative z-10">
+          <div className={`mx-auto relative z-10 ${offers.length >= 3 ? 'max-w-6xl' : 'max-w-3xl'}`}>
             <div className="flex items-center gap-3 mb-10">
               <span className="text-4xl animate-pulse">⚡</span>
               <div><h2 className="text-white text-3xl font-extrabold">Ofertas especiales</h2><p className="text-blue-300 text-sm">¡Aprovechá antes de que se terminen!</p></div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="flex flex-wrap justify-center gap-5">
               {offers.map((o: any) => (
-                <div key={o.id} className="bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+                <div key={o.id} className="w-full sm:w-[320px] bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105">
                   <span className="text-xs text-yellow-400 font-bold uppercase tracking-wider">🏷️ Oferta activa</span>
                   <p className="text-white font-bold text-lg mt-2 mb-3">{o.name}</p>
                   <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-red-500/30">
@@ -106,7 +116,7 @@ export default async function HomePage() {
         </div>
         {products && products.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {(products as unknown as Product[]).map(p => <ProductCard key={p.id} product={p} />)}
+            {(products as unknown as Product[]).map(p => <ProductCard key={p.id} product={p} offers={(allActiveOffers as unknown as OfferLike[]) || []} />)}
           </div>
         ) : (
           <p className="text-center text-gray-400 py-10">Pronto agregaremos productos destacados.</p>

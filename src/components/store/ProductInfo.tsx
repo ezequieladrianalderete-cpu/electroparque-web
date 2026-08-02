@@ -5,20 +5,27 @@ import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
 import { useRouter } from 'next/navigation';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import type { Product, Review } from '@/types';
 
-export function ProductInfo({ product, reviews, avgRating }: { product: Product; reviews: Review[]; avgRating: string | null }) {
+export function ProductInfo({ product, reviews, avgRating, offers = [] }: { product: Product; reviews: Review[]; avgRating: string | null; offers?: OfferLike[] }) {
   const { addItem, buyNow } = useCart();
   const settings = useStoreSettings();
   const router = useRouter();
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0]?.id || '');
   const [qty, setQty] = useState(1);
   const variant = product.variants?.find(v => v.id === selectedVariant);
-  const finalPrice = product.price + (variant?.price_modifier || 0);
-  const discount = product.compare_at_price ? Math.round((1 - product.price / product.compare_at_price) * 100) : 0;
-  const savings = product.compare_at_price ? product.compare_at_price - product.price : 0;
 
-  const handleBuyNow = () => { buyNow(product, variant, qty); router.push('/checkout'); };
+  const activeOffer = findActiveOffer(offers, { id: product.id, category_id: product.category_id });
+  const basePrice = activeOffer ? applyOffer(product.price, activeOffer) : product.price;
+  const referencePrice = activeOffer ? product.price : product.compare_at_price;
+  const finalPrice = basePrice + (variant?.price_modifier || 0);
+  const discount = referencePrice ? Math.round((1 - basePrice / referencePrice) * 100) : 0;
+  const savings = referencePrice ? referencePrice - basePrice : 0;
+  // Si hay oferta activa, el carrito debe usar el precio ya descontado (no el de lista).
+  const cartProduct = activeOffer ? { ...product, price: basePrice, compare_at_price: product.price } : product;
+
+  const handleBuyNow = () => { buyNow(cartProduct, variant, qty); router.push('/checkout'); };
 
   const waMsg = `Hola! Estoy interesado en:\n\n📦 *${product.name}*${variant ? `\n🎨 ${variant.name}: ${variant.value}` : ''}\n💰 Precio: ${formatPrice(finalPrice)}\n🔢 Cantidad: ${qty}\n\n¿Está disponible? Quiero más info.`;
 
@@ -37,7 +44,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
 
       <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border flex flex-wrap items-end gap-3">
         <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
-        {product.compare_at_price && <span className="text-lg text-gray-400 line-through">{formatPrice(product.compare_at_price)}</span>}
+        {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
         {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
       </div>
 
@@ -68,7 +75,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
         <Zap className="w-5 h-5" /> COMPRAR AHORA
       </button>
 
-      <button onClick={() => { for (let i = 0; i < qty; i++) addItem(product, variant); }}
+      <button onClick={() => { for (let i = 0; i < qty; i++) addItem(cartProduct, variant); }}
         className="w-full border-2 border-ep-navy text-ep-navy hover:bg-ep-navy hover:text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>

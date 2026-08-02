@@ -8,6 +8,7 @@ import { ProductVideoBlock } from '@/components/store/ProductVideoBlock';
 import { FaqAccordion } from '@/components/store/FaqAccordion';
 import { notFound } from 'next/navigation';
 import type { Product, ProductContentBlock as ContentBlock, Faq } from '@/types';
+import type { OfferLike } from '@/lib/offers';
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -27,6 +28,7 @@ export default async function ProductoPage({ params }: Props) {
   const { data: related } = await supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).neq('id', product.id).limit(4);
   const { data: contentBlocks } = await supabase.from('product_content_blocks').select('*').eq('product_id', product.id).eq('is_active', true).order('sort_order');
   const { data: faqs } = await supabase.from('faqs').select('*').eq('product_id', product.id).eq('is_active', true).order('sort_order');
+  const { data: offers } = await supabase.from('offers').select('*').eq('is_active', true);
   const p = product as unknown as Product & { video_url?: string };
   const avg = reviews?.length ? (reviews.reduce((a:number,r:any)=>a+r.rating,0)/reviews.length).toFixed(1) : null;
 
@@ -39,7 +41,7 @@ export default async function ProductoPage({ params }: Props) {
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <ProductGallery images={p.images||[]} productName={p.name} videoUrl={p.video_url || undefined} />
-          <ProductInfo product={p} reviews={reviews||[]} avgRating={avg} />
+          <ProductInfo product={p} reviews={reviews||[]} avgRating={avg} offers={(offers as unknown as OfferLike[]) || []} />
         </div>
 
         {p.description && (
@@ -90,7 +92,7 @@ export default async function ProductoPage({ params }: Props) {
         )}
         {related && related.length > 0 && (
           <div className="mt-16 border-t pt-12"><h2 className="text-xl font-bold mb-6">También te puede interesar</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{(related as unknown as Product[]).map(rp=><ProductCard key={rp.id} product={rp}/>)}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{(related as unknown as Product[]).map(rp=><ProductCard key={rp.id} product={rp} offers={(offers as unknown as OfferLike[]) || []}/>)}</div>
           </div>
         )}
       </div>
