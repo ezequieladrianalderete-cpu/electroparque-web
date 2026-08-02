@@ -1,11 +1,28 @@
 'use client';
-import { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { VideoTestimonial } from '@/types';
 
 export function VideoTestimonialCarousel({ videos }: { videos: VideoTestimonial[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+
+  // Solo reproducimos los videos que están realmente a la vista (mejor para el rendimiento
+  // que hacer arrancar los 6+ videos apenas carga la página).
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const video = entry.target as HTMLVideoElement;
+        if (entry.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      });
+    }, { root, threshold: 0.6 });
+
+    Object.values(videoRefs.current).forEach(v => { if (v) observer.observe(v); });
+    return () => observer.disconnect();
+  }, [videos]);
 
   const scroll = (dir: -1 | 1) => {
     scrollRef.current?.scrollBy({ left: dir * 280, behavior: 'smooth' });
@@ -17,22 +34,14 @@ export function VideoTestimonialCarousel({ videos }: { videos: VideoTestimonial[
         {videos.map(v => (
           <div key={v.id} className="flex-shrink-0 w-52 snap-start">
             <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-gray-900 shadow-sm">
-              {playingId === v.id ? (
-                <video src={v.video_url} className="w-full h-full object-cover" controls autoPlay playsInline />
-              ) : (
-                <button onClick={() => setPlayingId(v.id)} className="group absolute inset-0 w-full h-full">
-                  {v.thumbnail_url ? (
-                    <img src={v.thumbnail_url} alt={v.caption || ''} className="w-full h-full object-cover" />
-                  ) : (
-                    <video src={v.video_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                  )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
-                    <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <Play className="w-5 h-5 text-ep-navy fill-ep-navy ml-0.5" />
-                    </span>
-                  </div>
-                </button>
-              )}
+              <video
+                ref={el => { videoRefs.current[v.id] = el; }}
+                src={v.video_url}
+                poster={v.thumbnail_url || undefined}
+                className="w-full h-full object-cover"
+                muted loop playsInline preload="metadata"
+                onClick={e => { const el = e.currentTarget; el.muted ? (el.muted = false, el.setAttribute('controls', '')) : (el.muted = true, el.removeAttribute('controls')); }}
+              />
             </div>
             {v.caption && <p className="text-sm text-gray-600 mt-2 text-center truncate">{v.caption}</p>}
           </div>

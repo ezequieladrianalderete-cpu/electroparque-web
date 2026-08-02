@@ -5,10 +5,12 @@ import { formatPrice } from '@/lib/utils';
 import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
 import { ArrowLeft, ShieldCheck, CreditCard, MessageCircle, Percent } from 'lucide-react';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 export default function CheckoutPage() {
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   const { items, total, clearCart } = useCart();
+  const settings = useStoreSettings();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
@@ -116,7 +118,7 @@ export default function CheckoutPage() {
       const msg = `🛒 *NUEVO PEDIDO #${order.order_number || ''}*\n\n👤 *Cliente:* ${form.name}\n📞 *Tel:* ${form.phone}\n${form.email ? `📧 *Email:* ${form.email}\n` : ''}${form.dni ? `🆔 *DNI:* ${form.dni}\n` : ''}\n📦 *Productos:*\n${itemLines}\n\n💰 *Total: ${formatPrice(total())}*\n🚚 *Envío: GRATIS*\n\n📍 *Enviar a:*\n${form.address || 'A coordinar'}\n${form.city ? `${form.city}, ${form.province}` : ''}\n${form.zip ? `CP: ${form.zip}` : ''}\n${form.notes ? `\n📝 *Notas:* ${form.notes}` : ''}`;
 
       clearCart();
-      window.open(`https://wa.me/541144128645?text=${encodeURIComponent(msg)}`, '_blank');
+      window.open(`https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(msg)}`, '_blank');
       window.location.href = '/checkout/gracias';
     } catch (e: any) { setError(e.message); }
     setSaving(false);

@@ -10,7 +10,7 @@ import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }, { data: videoTestimonials }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
@@ -19,7 +19,9 @@ export default async function HomePage() {
     supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('video_testimonials').select('*').eq('is_active', true).order('sort_order'),
+    supabase.from('store_settings').select('key,value').eq('key', 'whatsapp_number'),
   ]);
+  const whatsappNumber = settingsRows?.find(s => s.key === 'whatsapp_number')?.value || '541144128645';
   const reviewCount = allRatings?.length || 0;
   const avgRating = reviewCount > 0 ? (allRatings!.reduce((sum, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1) : null;
 
@@ -158,7 +160,7 @@ export default async function HomePage() {
         <div className="relative z-10">
           <h2 className="text-white text-3xl font-extrabold mb-3">¿Necesitás ayuda para elegir?</h2>
           <p className="text-white/80 mb-8 text-lg">Nuestro equipo te asesora por WhatsApp en minutos</p>
-          <a href="https://wa.me/541144128645" className="inline-block bg-white text-ep-navy font-bold px-10 py-4 rounded-2xl hover:scale-110 transition-all duration-300 shadow-xl text-lg">💬 Contactar por WhatsApp</a>
+          <a href={`https://wa.me/${whatsappNumber}`} className="inline-block bg-white text-ep-navy font-bold px-10 py-4 rounded-2xl hover:scale-110 transition-all duration-300 shadow-xl text-lg">💬 Contactar por WhatsApp</a>
         </div>
       </section>
 

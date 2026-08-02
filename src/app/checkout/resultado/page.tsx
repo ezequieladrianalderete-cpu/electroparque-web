@@ -21,6 +21,9 @@ export default async function ResultadoPage({ searchParams }: Props) {
 
   let order: any = null;
 
+  const { data: waSetting } = await supabase.from('store_settings').select('value').eq('key', 'whatsapp_number').single();
+  const whatsappNumber = waSetting?.value || '541144128645';
+
   // Actualizar y obtener el pedido
   if (orderId) {
     let newStatus = 'pending';
@@ -85,7 +88,7 @@ export default async function ResultadoPage({ searchParams }: Props) {
 
       <div className="flex gap-3 justify-center flex-wrap">
         <Link href="/productos" className="bg-gradient-to-r from-ep-navy to-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:scale-105 transition-transform">Seguir comprando</Link>
-        <a href={`https://wa.me/541144128645?text=${encodeURIComponent(waMsg)}`} target="_blank"
+        <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(waMsg)}`} target="_blank"
           className="border-2 border-green-500 text-green-600 font-bold px-6 py-3 rounded-xl hover:bg-green-50 transition-colors">
           💬 Contactar por WhatsApp
         </a>

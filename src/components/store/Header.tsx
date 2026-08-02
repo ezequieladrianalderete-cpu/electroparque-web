@@ -4,28 +4,20 @@ import { ShoppingCart, Search, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/store/cart';
 import { CartDrawer } from './CartDrawer';
-import { createBrowserClient } from '@supabase/ssr';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [logo, setLogo] = useState('');
-  const [storeName, setStoreName] = useState('Electro Parque');
   const { count, toggleCart } = useCart();
-
-  useEffect(() => {
-    const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-    supabase.from('store_settings').select('key,value').in('key', ['logo_url', 'store_name']).then(({ data }) => {
-      data?.forEach(s => {
-        if (s.key === 'logo_url' && s.value) setLogo(s.value);
-        if (s.key === 'store_name' && s.value) setStoreName(s.value);
-      });
-    });
-  }, []);
+  const settings = useStoreSettings();
+  const logo = settings.logo_url;
+  const storeName = settings.store_name;
+  const waFormatted = settings.whatsapp_number.replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
 
   return (
     <>
       <div className="bg-gradient-to-r from-ep-navy via-ep-navy-light to-ep-navy text-white text-xs text-center py-2 px-4 font-medium">
-        🚚 ¡Envío GRATIS en todas las compras! · 📞 11 4412-8645
+        🚚 ¡Envío GRATIS en todas las compras! · 📞 {waFormatted}
       </div>
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16 sm:h-20 md:h-24 lg:h-28">

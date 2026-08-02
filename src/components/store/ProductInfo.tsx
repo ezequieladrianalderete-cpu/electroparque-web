@@ -4,10 +4,12 @@ import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
 import { useRouter } from 'next/navigation';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import type { Product, Review } from '@/types';
 
 export function ProductInfo({ product, reviews, avgRating }: { product: Product; reviews: Review[]; avgRating: string | null }) {
   const { addItem, buyNow } = useCart();
+  const settings = useStoreSettings();
   const router = useRouter();
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0]?.id || '');
   const [qty, setQty] = useState(1);
@@ -71,7 +73,7 @@ export function ProductInfo({ product, reviews, avgRating }: { product: Product;
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>
 
-      <a href={`https://wa.me/541144128645?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
+      <a href={`https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-600 font-semibold py-3 rounded-xl hover:bg-green-50 transition-all hover:shadow-md">
         <MessageCircle className="w-5 h-5" /> Consultar por WhatsApp
       </a>
