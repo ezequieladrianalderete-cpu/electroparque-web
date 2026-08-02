@@ -22,6 +22,10 @@ export interface Banner {
   image_mobile_url: string | null; video_url: string | null; placement: 'hero' | 'promo';
   link_url: string | null; link_text: string | null; is_active: boolean; sort_order: number;
 }
+export interface ProductContentBlock {
+  id: string; product_id: string; title: string | null; description: string | null;
+  image_url: string | null; video_url: string | null; is_active: boolean; sort_order: number;
+}
 export interface Review {
   id: string; product_id: string; customer_name: string; rating: number;
   title: string | null; comment: string; customer_photo_url: string | null;

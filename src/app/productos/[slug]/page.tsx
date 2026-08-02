@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { ProductGallery } from '@/components/store/ProductGallery';
 import { ProductInfo } from '@/components/store/ProductInfo';
 import { ProductCard } from '@/components/store/ProductCard';
+import { ProductContentBlock } from '@/components/store/ProductContentBlock';
 import { notFound } from 'next/navigation';
-import type { Product } from '@/types';
+import type { Product, ProductContentBlock as ContentBlock } from '@/types';
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -22,6 +23,7 @@ export default async function ProductoPage({ params }: Props) {
   if (!product) notFound();
   const { data: reviews } = await supabase.from('reviews').select('*').eq('product_id', product.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(10);
   const { data: related } = await supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).neq('id', product.id).limit(4);
+  const { data: contentBlocks } = await supabase.from('product_content_blocks').select('*').eq('product_id', product.id).eq('is_active', true).order('sort_order');
   const p = product as unknown as Product & { video_url?: string };
   const avg = reviews?.length ? (reviews.reduce((a:number,r:any)=>a+r.rating,0)/reviews.length).toFixed(1) : null;
 
@@ -45,10 +47,25 @@ export default async function ProductoPage({ params }: Props) {
           </div>
         )}
 
+        {contentBlocks && contentBlocks.length > 0 && (
+          <div className="mt-16 border-t pt-12 space-y-16">
+            {(contentBlocks as unknown as ContentBlock[]).map((b, i) => <ProductContentBlock key={b.id} block={b} reverse={i % 2 === 1} />)}
+          </div>
+        )}
+
         {reviews && reviews.length > 0 && (
           <div className="mt-16 border-t pt-12"><h2 className="text-xl font-bold mb-6">Opiniones ({reviews.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{reviews.map((r:any)=>(
-              <div key={r.id} className="border rounded-xl p-5"><div className="text-yellow-400 mb-2">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div><p className="text-sm text-gray-600 mb-3">&ldquo;{r.comment}&rdquo;</p><p className="text-sm font-semibold">{r.customer_name}</p></div>
+              <div key={r.id} className="border rounded-xl p-5">
+                <div className="text-yellow-400 mb-2">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
+                <p className="text-sm text-gray-600 mb-3">&ldquo;{r.comment}&rdquo;</p>
+                <div className="flex items-center gap-2">
+                  {r.customer_photo_url ? (
+                    <img src={r.customer_photo_url} alt={r.customer_name} className="w-7 h-7 rounded-full object-cover" />
+                  ) : null}
+                  <p className="text-sm font-semibold">{r.customer_name}</p>
+                </div>
+              </div>
             ))}</div>
           </div>
         )}

@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film } from 'lucide-react';
+import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, Video } from 'lucide-react';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,15 +17,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [specs, setSpecs] = useState<{key:string;value:string}[]>([]);
   const [variants, setVariants] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [blockForm, setBlockForm] = useState({ title: '', description: '' });
+  const [blockImageFile, setBlockImageFile] = useState<File | null>(null);
+  const [blockVideoFile, setBlockVideoFile] = useState<File | null>(null);
+  const [blockSaving, setBlockSaving] = useState(false);
 
   useEffect(() => { if (!authLoading) load(); }, [authLoading]);
 
   const load = async () => {
-    const [{ data: product }, { data: images }, { data: vars }, { data: categories }] = await Promise.all([
+    const [{ data: product }, { data: images }, { data: vars }, { data: categories }, { data: contentBlocks }] = await Promise.all([
       supabase.from('products').select('*').eq('id', id).single(),
       supabase.from('product_images').select('*').eq('product_id', id).order('sort_order'),
       supabase.from('product_variants').select('*').eq('product_id', id).order('sort_order'),
       supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('product_content_blocks').select('*').eq('product_id', id).order('sort_order'),
     ]);
     if (!product) { router.push('/admin/productos'); return; }
     setForm({ ...product, tags: product.tags?.join(', ') || '' });
@@ -33,6 +39,42 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     setVariants((vars || []).map((v:any) => ({ ...v, price_modifier: String(v.price_modifier), stock: String(v.stock) })));
     setSpecs(product.specs ? Object.entries(product.specs).map(([key, value]) => ({ key, value: value as string })) : []);
     setCats(categories || []);
+    setBlocks(contentBlocks || []);
+  };
+
+  const addBlock = async () => {
+    if (!blockForm.title.trim() && !blockImageFile && !blockVideoFile) return;
+    setBlockSaving(true);
+    let imageUrl = '';
+    let videoUrl = '';
+    if (blockImageFile) {
+      const path = `blocks/${id}-${Date.now()}.${blockImageFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('products').upload(path, blockImageFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path); imageUrl = publicUrl; }
+    }
+    if (blockVideoFile) {
+      const path = `blocks/${id}-${Date.now()}-video.${blockVideoFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('products').upload(path, blockVideoFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path); videoUrl = publicUrl; }
+    }
+    await supabase.from('product_content_blocks').insert({
+      product_id: id, title: blockForm.title || null, description: blockForm.description || null,
+      image_url: imageUrl || null, video_url: videoUrl || null, is_active: true, sort_order: blocks.length,
+    });
+    setBlockForm({ title: '', description: '' }); setBlockImageFile(null); setBlockVideoFile(null);
+    await load(); setBlockSaving(false);
+  };
+
+  const removeBlock = async (blockId: string) => { if (confirm('¿Eliminar este bloque?')) { await supabase.from('product_content_blocks').delete().eq('id', blockId); await load(); } };
+  const toggleBlock = async (blockId: string, active: boolean) => { await supabase.from('product_content_blocks').update({ is_active: !active }).eq('id', blockId); await load(); };
+  const moveBlock = async (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= blocks.length) return;
+    const reordered = [...blocks];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    setBlocks(reordered);
+    await Promise.all(reordered.map((b, i) => supabase.from('product_content_blocks').update({ sort_order: i }).eq('id', b.id)));
+    await load();
   };
 
   const set = (k:string) => (e:any) => {
@@ -149,6 +191,46 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             </label>
             {videoFile && <button onClick={() => setVideoFile(null)} className="text-red-500 text-xs font-medium">✕ Quitar video</button>}
             {form.video_url && !videoFile && <button onClick={() => setForm((f:any)=>({...f, video_url:''}))} className="text-red-500 text-xs font-medium">✕ Quitar video actual</button>}
+          </div>
+
+          <div className="bg-white rounded-xl border p-5 space-y-3">
+            <h2 className="font-bold text-sm">🧩 Bloques explicativos</h2>
+            <p className="text-xs text-gray-400">Se muestran uno debajo del otro en la ficha del producto, antes de las opiniones — para explicar el producto con fotos, videos y texto (como en las páginas de producto de otras tiendas grandes).</p>
+
+            <div className="border-2 border-dashed rounded-xl p-4 space-y-2">
+              <input value={blockForm.title} onChange={e => setBlockForm(f => ({...f, title: e.target.value}))} className="input-field text-sm" placeholder="Título (ej: Batería de larga duración)"/>
+              <textarea value={blockForm.description} onChange={e => setBlockForm(f => ({...f, description: e.target.value}))} className="input-field text-sm resize-none" rows={2} placeholder="Texto explicativo"/>
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="flex-1 min-w-[140px] border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                  <Upload className="w-4 h-4 text-gray-400"/>{blockImageFile ? blockImageFile.name : 'Imagen'}
+                  <input type="file" accept="image/*" onChange={e => { const f=e.target.files?.[0]; if(f) setBlockImageFile(f); }} className="hidden"/>
+                </label>
+                <label className="flex-1 min-w-[140px] border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                  <Video className="w-4 h-4 text-gray-400"/>{blockVideoFile ? blockVideoFile.name : 'Video (opcional)'}
+                  <input type="file" accept="video/*" onChange={e => { const f=e.target.files?.[0]; if(f) setBlockVideoFile(f); }} className="hidden"/>
+                </label>
+                <button onClick={addBlock} disabled={blockSaving} className="bg-ep-navy text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50"><Plus className="w-3 h-3 inline mr-1"/>Agregar</button>
+              </div>
+            </div>
+
+            {blocks.map((b, i) => (
+              <div key={b.id} className="flex items-center gap-3 border rounded-xl p-3">
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={() => moveBlock(i, -1)} disabled={i===0} className="p-0.5 rounded border text-gray-500 hover:bg-gray-50 disabled:opacity-30"><ChevronUp className="w-3 h-3"/></button>
+                  <button onClick={() => moveBlock(i, 1)} disabled={i===blocks.length-1} className="p-0.5 rounded border text-gray-500 hover:bg-gray-50 disabled:opacity-30"><ChevronDown className="w-3 h-3"/></button>
+                </div>
+                <div className="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  {b.image_url ? <img src={b.image_url} alt="" className="w-full h-full object-cover"/> : b.video_url ? <Video className="w-5 h-5 text-gray-400"/> : <span className="text-gray-300 text-[9px]">Sin imagen</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-xs truncate">{b.title || '(sin título)'}</p>
+                  <p className="text-[11px] text-gray-400 truncate">{b.description}</p>
+                </div>
+                <button onClick={() => toggleBlock(b.id, b.is_active)} className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{b.is_active ? 'Activo' : 'Oculto'}</button>
+                <button onClick={() => removeBlock(b.id)} className="text-red-400 hover:text-red-600 flex-shrink-0"><Trash2 className="w-4 h-4"/></button>
+              </div>
+            ))}
+            {blocks.length === 0 && <p className="text-center text-gray-400 text-xs py-4">Todavía no hay bloques.</p>}
           </div>
 
           <div className="bg-white rounded-xl border p-5">
