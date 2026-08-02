@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, Video, HelpCircle } from 'lucide-react';
+import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Video, HelpCircle } from 'lucide-react';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -156,6 +156,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   };
 
   const deleteImage = async (imgId: string) => { await supabase.from('product_images').delete().eq('id', imgId); await load(); };
+  const moveImage = async (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= existingImages.length) return;
+    const reordered = [...existingImages];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    setExistingImages(reordered);
+    await Promise.all(reordered.map((img, i) => supabase.from('product_images').update({ sort_order: i, is_primary: i === 0 }).eq('id', img.id)));
+    await load();
+  };
 
   if (authLoading || !form) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Cargando...</div>;
 
@@ -182,11 +191,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           <div className="bg-white rounded-xl border p-5">
             <h2 className="font-bold text-sm mb-3">📸 Fotos</h2>
             <div className="grid grid-cols-4 gap-3">
-              {existingImages.map(img => (
+              {existingImages.map((img, i) => (
                 <div key={img.id} className="aspect-square rounded-lg border-2 border-gray-200 overflow-hidden relative group">
                   <img src={img.url} alt="" className="w-full h-full object-cover"/>
                   {img.is_primary && <span className="absolute top-1 left-1 bg-ep-navy text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Principal</span>}
                   <button onClick={() => deleteImage(img.id)} className="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100"><X className="w-3 h-3"/></button>
+                  <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => moveImage(i, -1)} disabled={i===0} className="bg-black/60 text-white w-5 h-5 rounded-full flex items-center justify-center disabled:opacity-30"><ChevronLeft className="w-3 h-3"/></button>
+                    <button onClick={() => moveImage(i, 1)} disabled={i===existingImages.length-1} className="bg-black/60 text-white w-5 h-5 rounded-full flex items-center justify-center disabled:opacity-30"><ChevronRight className="w-3 h-3"/></button>
+                  </div>
                 </div>
               ))}
               {newImages.map((img,i) => (
