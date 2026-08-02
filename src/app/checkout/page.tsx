@@ -4,7 +4,7 @@ import { useCart } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, CreditCard, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, CreditCard, MessageCircle, Percent } from 'lucide-react';
 
 export default function CheckoutPage() {
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -68,6 +68,33 @@ export default function CheckoutPage() {
         window.location.href = data.init_point;
       } else {
         setError('Error al crear el pago: ' + (data.error || 'intente de nuevo'));
+      }
+    } catch (e: any) { setError(e.message); }
+    setSaving(false);
+  };
+
+  // PAGAR EN CUOTAS CON GOCUOTAS
+  const handleGoCuotas = async () => {
+    if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
+    setSaving(true); setError('');
+    try {
+      const order = await saveOrder();
+      const res = await fetch('/api/checkout/gocuotas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: order.items,
+          orderId: order.id,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+        }),
+      });
+      const data = await res.json();
+      if (data.url_init) {
+        clearCart();
+        window.location.href = data.url_init;
+      } else {
+        setError('Error al crear el pago en cuotas: ' + (data.error || 'intente de nuevo'));
       }
     } catch (e: any) { setError(e.message); }
     setSaving(false);
@@ -162,6 +189,16 @@ export default function CheckoutPage() {
             <button onClick={handleMercadoPago} disabled={saving}
               className="w-full bg-[#009ee3] hover:bg-[#0082c3] text-white font-bold py-4 rounded-xl mt-5 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 text-base">
               <CreditCard className="w-5 h-5"/> Pagar con MercadoPago
+            </button>
+
+            <div className="flex items-center gap-3 my-3">
+              <div className="flex-1 border-t"></div><span className="text-xs text-gray-400">o</span><div className="flex-1 border-t"></div>
+            </div>
+
+            {/* GOCUOTAS */}
+            <button onClick={handleGoCuotas} disabled={saving}
+              className="w-full bg-[#e6007e] hover:bg-[#c40069] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
+              <Percent className="w-5 h-5"/> Pagar en cuotas con GoCuotas
             </button>
 
             <div className="flex items-center gap-3 my-3">
