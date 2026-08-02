@@ -3,13 +3,14 @@ import { createClient } from '@/lib/supabase/server';
 import { ProductCard } from '@/components/store/ProductCard';
 import { HeroCarousel } from '@/components/store/HeroCarousel';
 import { VideoBanner } from '@/components/store/VideoBanner';
+import { VideoTestimonialCarousel } from '@/components/store/VideoTestimonialCarousel';
 import Link from 'next/link';
-import type { Product, Banner } from '@/types';
+import type { Product, Banner, VideoTestimonial } from '@/types';
 import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: offers }, { data: categories }, { data: videoTestimonials }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
@@ -17,6 +18,7 @@ export default async function HomePage() {
     supabase.from('reviews').select('rating').eq('is_approved', true),
     supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
+    supabase.from('video_testimonials').select('*').eq('is_active', true).order('sort_order'),
   ]);
   const reviewCount = allRatings?.length || 0;
   const avgRating = reviewCount > 0 ? (allRatings!.reduce((sum, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1) : null;
@@ -138,6 +140,15 @@ export default async function HomePage() {
               ))}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* Video testimonials */}
+      {videoTestimonials && videoTestimonials.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <h2 className="text-3xl font-extrabold text-center mb-2 text-ep-navy">Nuestros clientes lo muestran</h2>
+          <p className="text-gray-400 text-center text-sm mb-8">Videos reales de compras reales</p>
+          <VideoTestimonialCarousel videos={videoTestimonials as unknown as VideoTestimonial[]} />
         </section>
       )}
 
