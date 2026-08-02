@@ -4,6 +4,7 @@ import { ProductGallery } from '@/components/store/ProductGallery';
 import { ProductInfo } from '@/components/store/ProductInfo';
 import { ProductCard } from '@/components/store/ProductCard';
 import { ProductContentBlock } from '@/components/store/ProductContentBlock';
+import { ProductVideoBlock } from '@/components/store/ProductVideoBlock';
 import { FaqAccordion } from '@/components/store/FaqAccordion';
 import { notFound } from 'next/navigation';
 import type { Product, ProductContentBlock as ContentBlock, Faq } from '@/types';
@@ -48,13 +49,23 @@ export default async function ProductoPage({ params }: Props) {
               dangerouslySetInnerHTML={{ __html: p.description }} />
           </div>
         )}
+      </div>
 
-        {contentBlocks && contentBlocks.length > 0 && (
-          <div className="mt-16 border-t pt-12 space-y-16">
-            {(contentBlocks as unknown as ContentBlock[]).map((b, i) => <ProductContentBlock key={b.id} block={b} reverse={i % 2 === 1} />)}
-          </div>
-        )}
+      {contentBlocks && contentBlocks.length > 0 && (
+        <div className="mt-16 space-y-16">
+          {(contentBlocks as unknown as ContentBlock[]).map((b, i) => (
+            b.video_url ? (
+              <ProductVideoBlock key={b.id} block={b} />
+            ) : (
+              <div key={b.id} className="max-w-7xl mx-auto px-4">
+                <ProductContentBlock block={b} reverse={i % 2 === 1} />
+              </div>
+            )
+          ))}
+        </div>
+      )}
 
+      <div className="max-w-7xl mx-auto px-4 pb-10">
         {reviews && reviews.length > 0 && (
           <div className="mt-16 border-t pt-12"><h2 className="text-xl font-bold mb-6">Opiniones ({reviews.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{reviews.map((r:any)=>(
