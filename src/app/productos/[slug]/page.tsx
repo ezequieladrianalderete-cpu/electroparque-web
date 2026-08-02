@@ -4,8 +4,9 @@ import { ProductGallery } from '@/components/store/ProductGallery';
 import { ProductInfo } from '@/components/store/ProductInfo';
 import { ProductCard } from '@/components/store/ProductCard';
 import { ProductContentBlock } from '@/components/store/ProductContentBlock';
+import { FaqAccordion } from '@/components/store/FaqAccordion';
 import { notFound } from 'next/navigation';
-import type { Product, ProductContentBlock as ContentBlock } from '@/types';
+import type { Product, ProductContentBlock as ContentBlock, Faq } from '@/types';
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -24,6 +25,7 @@ export default async function ProductoPage({ params }: Props) {
   const { data: reviews } = await supabase.from('reviews').select('*').eq('product_id', product.id).eq('is_approved', true).order('created_at', { ascending: false }).limit(10);
   const { data: related } = await supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).neq('id', product.id).limit(4);
   const { data: contentBlocks } = await supabase.from('product_content_blocks').select('*').eq('product_id', product.id).eq('is_active', true).order('sort_order');
+  const { data: faqs } = await supabase.from('faqs').select('*').eq('product_id', product.id).eq('is_active', true).order('sort_order');
   const p = product as unknown as Product & { video_url?: string };
   const avg = reviews?.length ? (reviews.reduce((a:number,r:any)=>a+r.rating,0)/reviews.length).toFixed(1) : null;
 
@@ -67,6 +69,12 @@ export default async function ProductoPage({ params }: Props) {
                 </div>
               </div>
             ))}</div>
+          </div>
+        )}
+        {faqs && faqs.length > 0 && (
+          <div className="mt-16 border-t pt-12 max-w-2xl">
+            <h2 className="text-xl font-bold mb-6">Preguntas frecuentes</h2>
+            <FaqAccordion faqs={faqs as unknown as Faq[]} />
           </div>
         )}
         {related && related.length > 0 && (

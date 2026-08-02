@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, Video } from 'lucide-react';
+import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, Video, HelpCircle } from 'lucide-react';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,16 +22,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [blockImageFile, setBlockImageFile] = useState<File | null>(null);
   const [blockVideoFile, setBlockVideoFile] = useState<File | null>(null);
   const [blockSaving, setBlockSaving] = useState(false);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [faqForm, setFaqForm] = useState({ question: '', answer: '' });
+  const [faqSaving, setFaqSaving] = useState(false);
 
   useEffect(() => { if (!authLoading) load(); }, [authLoading]);
 
   const load = async () => {
-    const [{ data: product }, { data: images }, { data: vars }, { data: categories }, { data: contentBlocks }] = await Promise.all([
+    const [{ data: product }, { data: images }, { data: vars }, { data: categories }, { data: contentBlocks }, { data: productFaqs }] = await Promise.all([
       supabase.from('products').select('*').eq('id', id).single(),
       supabase.from('product_images').select('*').eq('product_id', id).order('sort_order'),
       supabase.from('product_variants').select('*').eq('product_id', id).order('sort_order'),
       supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('product_content_blocks').select('*').eq('product_id', id).order('sort_order'),
+      supabase.from('faqs').select('*').eq('product_id', id).order('sort_order'),
     ]);
     if (!product) { router.push('/admin/productos'); return; }
     setForm({ ...product, tags: product.tags?.join(', ') || '' });
@@ -40,6 +44,26 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     setSpecs(product.specs ? Object.entries(product.specs).map(([key, value]) => ({ key, value: value as string })) : []);
     setCats(categories || []);
     setBlocks(contentBlocks || []);
+    setFaqs(productFaqs || []);
+  };
+
+  const addFaq = async () => {
+    if (!faqForm.question.trim() || !faqForm.answer.trim()) return;
+    setFaqSaving(true);
+    await supabase.from('faqs').insert({ product_id: id, question: faqForm.question, answer: faqForm.answer, is_active: true, sort_order: faqs.length });
+    setFaqForm({ question: '', answer: '' });
+    await load(); setFaqSaving(false);
+  };
+  const removeFaq = async (faqId: string) => { if (confirm('¿Eliminar esta pregunta?')) { await supabase.from('faqs').delete().eq('id', faqId); await load(); } };
+  const toggleFaq = async (faqId: string, active: boolean) => { await supabase.from('faqs').update({ is_active: !active }).eq('id', faqId); await load(); };
+  const moveFaq = async (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= faqs.length) return;
+    const reordered = [...faqs];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    setFaqs(reordered);
+    await Promise.all(reordered.map((f, i) => supabase.from('faqs').update({ sort_order: i }).eq('id', f.id)));
+    await load();
   };
 
   const addBlock = async () => {
@@ -231,6 +255,31 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </div>
             ))}
             {blocks.length === 0 && <p className="text-center text-gray-400 text-xs py-4">Todavía no hay bloques.</p>}
+          </div>
+
+          <div className="bg-white rounded-xl border p-5 space-y-3">
+            <h2 className="font-bold text-sm flex items-center gap-2"><HelpCircle className="w-4 h-4"/>Preguntas frecuentes de este producto</h2>
+            <p className="text-xs text-gray-400">Aparecen al final de la ficha de este producto. Para preguntas generales de la tienda (envíos, pagos, etc.) usá <a href="/admin/faqs" className="text-ep-navy underline">Preguntas frecuentes</a> en el menú.</p>
+            <div className="border-2 border-dashed rounded-xl p-4 space-y-2">
+              <input value={faqForm.question} onChange={e => setFaqForm(f => ({...f, question: e.target.value}))} className="input-field text-sm" placeholder="¿Cuánto dura la batería?"/>
+              <textarea value={faqForm.answer} onChange={e => setFaqForm(f => ({...f, answer: e.target.value}))} className="input-field text-sm resize-none" rows={2} placeholder="Hasta 8 horas de uso continuo..."/>
+              <button onClick={addFaq} disabled={faqSaving} className="bg-ep-navy text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50"><Plus className="w-3 h-3 inline mr-1"/>Agregar</button>
+            </div>
+            {faqs.map((f, i) => (
+              <div key={f.id} className="flex items-start gap-3 border rounded-xl p-3">
+                <div className="flex flex-col gap-0.5 mt-0.5">
+                  <button onClick={() => moveFaq(i, -1)} disabled={i===0} className="p-0.5 rounded border text-gray-500 hover:bg-gray-50 disabled:opacity-30"><ChevronUp className="w-3 h-3"/></button>
+                  <button onClick={() => moveFaq(i, 1)} disabled={i===faqs.length-1} className="p-0.5 rounded border text-gray-500 hover:bg-gray-50 disabled:opacity-30"><ChevronDown className="w-3 h-3"/></button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-xs">{f.question}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{f.answer}</p>
+                </div>
+                <button onClick={() => toggleFaq(f.id, f.is_active)} className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${f.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{f.is_active ? 'Activa' : 'Oculta'}</button>
+                <button onClick={() => removeFaq(f.id)} className="text-red-400 hover:text-red-600 flex-shrink-0"><Trash2 className="w-4 h-4"/></button>
+              </div>
+            ))}
+            {faqs.length === 0 && <p className="text-center text-gray-400 text-xs py-4">Todavía no hay preguntas para este producto.</p>}
           </div>
 
           <div className="bg-white rounded-xl border p-5">

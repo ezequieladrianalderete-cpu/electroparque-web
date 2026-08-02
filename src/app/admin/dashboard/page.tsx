@@ -45,6 +45,7 @@ export default async function DashboardPage() {
             ['🏷️','Ofertas','/admin/ofertas','Descuentos y promos'],
             ['🛒','Pedidos','/admin/pedidos','Ventas recibidas'],
             ['⭐','Reseñas','/admin/resenas','Aprobar opiniones'],
+            ['❓','Preguntas frecuentes','/admin/faqs','Dudas generales de la tienda'],
             ['📝','Blog','/admin/publicaciones','Artículos y noticias'],
             ['⚙️','Configuración','/admin/configuracion','Logo, WhatsApp, datos'],
           ].map(([icon,label,href,desc])=>(

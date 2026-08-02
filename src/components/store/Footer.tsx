@@ -41,7 +41,7 @@ export function Footer() {
           </div>
           <div>
             <h4 className="font-bold mb-3">Ayuda</h4>
-            {[['Quiénes somos','/nosotros'],['Contacto','/contacto']].map(([l,h])=>(
+            {[['Quiénes somos','/nosotros'],['Preguntas frecuentes','/preguntas-frecuentes'],['Contacto','/contacto']].map(([l,h])=>(
               <Link key={l} href={h} className="block text-blue-200 text-sm mb-2 hover:text-white">{l}</Link>
             ))}
           </div>
