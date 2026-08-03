@@ -15,6 +15,7 @@ export interface Product {
   short_description: string | null; price: number; compare_at_price: number | null;
   sku: string | null; category_id: string | null; is_active: boolean; is_featured: boolean;
   tags: string[] | null; specs: Record<string, string>; sort_order: number;
+  video_url: string | null;
   category?: Category; images?: ProductImage[]; variants?: ProductVariant[];
 }
 export interface Banner {
