@@ -48,6 +48,7 @@ export default async function DashboardPage() {
             ['🎬','Videos de clientes','/admin/videos-clientes','Carrusel de videos en la portada'],
             ['❓','Preguntas frecuentes','/admin/faqs','Dudas generales de la tienda'],
             ['📝','Blog','/admin/publicaciones','Artículos y noticias'],
+            ['🏢','Nosotros','/admin/nosotros','Historia y texto de la página'],
             ['⚙️','Configuración','/admin/configuracion','Logo, WhatsApp, datos'],
           ].map(([icon,label,href,desc])=>(
             <Link key={label} href={href} className="bg-white border rounded-xl p-4 hover:shadow-md transition-shadow">
