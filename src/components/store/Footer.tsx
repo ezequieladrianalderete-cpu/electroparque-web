@@ -1,21 +1,7 @@
-'use client';
 import Link from 'next/link';
 import { MessageCircle, Mail, MapPin } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 
-export function Footer() {
-  const [settings, setSettings] = useState<Record<string,string>>({});
-
-  useEffect(() => {
-    const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-    supabase.from('store_settings').select('key,value').then(({ data }) => {
-      const s: Record<string,string> = {};
-      data?.forEach(d => { if(d.value) s[d.key] = d.value; });
-      setSettings(s);
-    });
-  }, []);
-
+export function Footer({ settings }: { settings: Record<string, string> }) {
   const wa = settings.whatsapp_number || '541144128645';
   const name = settings.store_name || 'Electro Parque';
   const logo = settings.logo_url;

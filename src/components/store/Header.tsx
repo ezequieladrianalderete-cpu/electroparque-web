@@ -1,18 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { ShoppingCart, Search, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useCart } from '@/store/cart';
 import { CartDrawer } from './CartDrawer';
-import { useStoreSettings } from '@/hooks/useStoreSettings';
 
-export function Header() {
+export function Header({ settings }: { settings: Record<string, string> }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { count, toggleCart } = useCart();
-  const settings = useStoreSettings();
   const logo = settings.logo_url;
-  const storeName = settings.store_name;
-  const waFormatted = settings.whatsapp_number.replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
+  const storeName = settings.store_name || 'Electro Parque';
+  const waFormatted = (settings.whatsapp_number || '541144128645').replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
 
   return (
     <>
