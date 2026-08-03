@@ -37,8 +37,7 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
       <Link href={`/productos/${product.slug}`}
         className="block"
         onMouseEnter={() => previewVideoUrl && setPreviewPlaying(true)}
-        onMouseLeave={() => setPreviewPlaying(false)}
-        onClick={e => { if (previewPlaying) e.preventDefault(); }}>
+        onMouseLeave={() => setPreviewPlaying(false)}>
         <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
           {previewVideoUrl && previewPlaying ? (
             <video src={previewVideoUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />
