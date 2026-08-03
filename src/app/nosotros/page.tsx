@@ -23,7 +23,7 @@ export default async function NosotrosPage() {
       <p className="text-gray-600 leading-relaxed mb-4 whitespace-pre-line">{history1}</p>
       <p className="text-gray-600 leading-relaxed mb-8 whitespace-pre-line">{history2}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[[Shield,'Productos originales'],[Truck,'Envío a todo el país'],[Award,'Garantía 12 meses'],[MessageCircle,'Soporte WhatsApp']].map(([Icon,title]:any)=>(
+        {[[Shield,'Productos originales'],[Truck,'Envío a todo el país'],[Award,'Garantía 30 dias'],[MessageCircle,'Soporte WhatsApp']].map(([Icon,title]:any)=>(
           <div key={title} className="text-center p-4 bg-gray-50 rounded-xl"><Icon className="w-8 h-8 text-ep-navy mx-auto mb-2"/><p className="text-sm font-semibold">{title}</p></div>
         ))}
       </div>
