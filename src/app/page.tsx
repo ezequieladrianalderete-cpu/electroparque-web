@@ -4,14 +4,15 @@ import { ProductCard } from '@/components/store/ProductCard';
 import { HeroCarousel } from '@/components/store/HeroCarousel';
 import { VideoBanner } from '@/components/store/VideoBanner';
 import { VideoTestimonialCarousel } from '@/components/store/VideoTestimonialCarousel';
+import { FaqAccordion } from '@/components/store/FaqAccordion';
 import Link from 'next/link';
-import type { Product, Banner, VideoTestimonial } from '@/types';
+import type { Product, Banner, VideoTestimonial, Faq } from '@/types';
 import type { OfferLike } from '@/lib/offers';
 import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }, { data: faqs }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
@@ -22,6 +23,7 @@ export default async function HomePage() {
     supabase.from('categories').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('video_testimonials').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('store_settings').select('key,value').in('key', ['whatsapp_number', 'offers_bg_image_url']),
+    supabase.from('faqs').select('*').is('product_id', null).eq('is_active', true).order('sort_order'),
   ]);
   const offers = countdownOffers;
   const whatsappNumber = settingsRows?.find(s => s.key === 'whatsapp_number')?.value || '541144128645';
@@ -175,6 +177,15 @@ export default async function HomePage() {
       </section>
 
       {((promoBanners as unknown as Banner[]) || []).map(b => <VideoBanner key={b.id} banner={b} />)}
+
+      {/* FAQ */}
+      {faqs && faqs.length > 0 && (
+        <section className="max-w-2xl mx-auto px-4 py-16">
+          <h2 className="text-3xl font-extrabold text-center mb-2 text-ep-navy">Preguntas frecuentes</h2>
+          <p className="text-gray-400 text-center text-sm mb-8">Las dudas más comunes de nuestros clientes</p>
+          <FaqAccordion faqs={faqs as unknown as Faq[]} />
+        </section>
+      )}
     </div>
   );
 }
