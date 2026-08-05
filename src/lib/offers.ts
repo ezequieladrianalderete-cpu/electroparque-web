@@ -1,5 +1,6 @@
 export interface OfferLike {
   id: string;
+  name: string;
   discount_type: string;
   discount_value: number;
   applies_to: string | null;

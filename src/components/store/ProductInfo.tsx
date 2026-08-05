@@ -42,10 +42,15 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border flex flex-wrap items-end gap-3">
-        <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
-        {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
-        {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
+      <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border">
+        {activeOffer && (
+          <p className="text-ep-red text-xs font-bold uppercase tracking-wide mb-2">🏷️ {activeOffer.name}</p>
+        )}
+        <div className="flex flex-wrap items-end gap-3">
+          <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
+          {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
+          {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
+        </div>
       </div>
 
       {product.variants && product.variants.length > 0 && (
