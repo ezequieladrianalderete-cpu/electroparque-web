@@ -6,6 +6,7 @@ import { useCart } from '@/store/cart';
 import { useRouter } from 'next/navigation';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
+import { OfferCountdown } from './OfferCountdown';
 import type { Product, Review } from '@/types';
 
 export function ProductInfo({ product, reviews, avgRating, offers = [] }: { product: Product; reviews: Review[]; avgRating: string | null; offers?: OfferLike[] }) {
@@ -51,6 +52,7 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
           {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
           {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
         </div>
+        {activeOffer?.ends_at && <div className="mt-3"><OfferCountdown endsAt={activeOffer.ends_at} compact /></div>}
       </div>
 
       {product.variants && product.variants.length > 0 && (

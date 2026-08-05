@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-export function OfferCountdown({ endsAt }: { endsAt: string }) {
+export function OfferCountdown({ endsAt, compact = false }: { endsAt: string; compact?: boolean }) {
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0, expired: false });
 
   useEffect(() => {
@@ -22,6 +22,14 @@ export function OfferCountdown({ endsAt }: { endsAt: string }) {
   }, [endsAt]);
 
   if (time.expired) return null;
+
+  if (compact) {
+    return (
+      <p className="text-ep-red text-[11px] font-bold flex items-center gap-1">
+        ⏱ Termina en {time.d > 0 && `${time.d}d `}{String(time.h).padStart(2, '0')}h {String(time.m).padStart(2, '0')}m {String(time.s).padStart(2, '0')}s
+      </p>
+    );
+  }
 
   return (
     <div className="mt-2">

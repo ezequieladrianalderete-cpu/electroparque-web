@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
 import { useRouter } from 'next/navigation';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
+import { OfferCountdown } from './OfferCountdown';
 import type { Product } from '@/types';
 
 export function ProductCard({ product, offers = [] }: { product: Product; offers?: OfferLike[] }) {
@@ -64,7 +65,10 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] hover:text-ep-navy transition-colors">{product.name}</h3>
         </Link>
         {activeOffer && (
-          <p className="text-[10px] text-ep-red font-bold uppercase tracking-wide mt-1 truncate">🏷️ {activeOffer.name}</p>
+          <div className="mt-1 space-y-0.5">
+            <p className="text-[10px] text-ep-red font-bold uppercase tracking-wide truncate">🏷️ {activeOffer.name}</p>
+            {activeOffer.ends_at && <OfferCountdown endsAt={activeOffer.ends_at} compact />}
+          </div>
         )}
         <div className="flex items-center gap-2 mt-2 mb-3">
           <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(effectivePrice)}</span>
