@@ -7,14 +7,32 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { items, orderId, customerEmail, customerPhone } = body;
 
+    const sucursalEmail = process.env.GOCUOTAS_EMAIL;
     const apiKey = process.env.GOCUOTAS_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'GoCuotas no configurado. Falta GOCUOTAS_API_KEY en Vercel.' }, { status: 500 });
+    if (!sucursalEmail || !apiKey) {
+      return NextResponse.json({ error: 'GoCuotas no configurado. Faltan GOCUOTAS_EMAIL y/o GOCUOTAS_API_KEY en Vercel.' }, { status: 500 });
     }
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
     }
+
+    // GoCuotas requiere credenciales de una "sucursal" (no las del comercio/admin):
+    // primero se autentica con email + api key (como password) para obtener un token,
+    // y ese token es el que se usa para crear el checkout.
+    const authResponse = await fetch('https://www.gocuotas.com/api_redirect/v1/authentication', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: sucursalEmail, password: apiKey }),
+    });
+    const authRawText = await authResponse.text();
+    let authData: any = {};
+    try { authData = authRawText ? JSON.parse(authRawText) : {}; } catch { authData = {}; }
+
+    if (!authResponse.ok || !authData.token) {
+      return NextResponse.json({ error: `No se pudo autenticar con GoCuotas (HTTP ${authResponse.status}): ${authData.message || 'sin detalle'}` }, { status: 400 });
+    }
+    const gcToken = authData.token;
 
     // Igual que con MercadoPago: nunca confiar en el precio que manda el navegador,
     // se vuelve a buscar cada precio real en Supabase para armar el monto correcto.
@@ -45,7 +63,7 @@ export async function POST(req: NextRequest) {
     const gcResponse = await fetch('https://www.gocuotas.com/api_redirect/v1/checkouts', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${gcToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
