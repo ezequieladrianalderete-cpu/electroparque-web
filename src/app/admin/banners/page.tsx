@@ -45,7 +45,7 @@ export default function BannersPage() {
   };
 
   const add = async () => {
-    if (!form.title.trim()) return;
+    if (!form.title.trim() && !imageFile && !videoFile) return;
     setSaving(true);
     let imageUrl = '';
     let imageMobileUrl = '';
@@ -148,7 +148,7 @@ export default function BannersPage() {
         <div className="bg-white rounded-xl border p-5 space-y-3">
           <h2 className="font-bold text-sm">Nuevo banner</h2>
           <div className="grid grid-cols-2 gap-3">
-            <input value={form.title} onChange={e => setForm(f=>({...f, title: e.target.value}))} className="input-field" placeholder="Título"/>
+            <input value={form.title} onChange={e => setForm(f=>({...f, title: e.target.value}))} className="input-field" placeholder="Título (opcional — se puede dejar solo la foto)"/>
             <input value={form.subtitle} onChange={e => setForm(f=>({...f, subtitle: e.target.value}))} className="input-field" placeholder="Subtítulo"/>
             <input value={form.link_url} onChange={e => setForm(f=>({...f, link_url: e.target.value}))} className="input-field" placeholder="Link (/productos/...)"/>
             <input value={form.link_text} onChange={e => setForm(f=>({...f, link_text: e.target.value}))} className="input-field" placeholder="Texto del botón"/>

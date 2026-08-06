@@ -20,7 +20,11 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
   }, [slides.length]);
 
   const banner = slides[index];
-  const heroWords = (banner?.title || 'CONECTIVIDAD INTELIGENTE').toUpperCase().split(' ');
+  // El texto de relleno solo es para cuando no hay ningún banner cargado todavía —
+  // un banner real con título/subtítulo vacío (foto sola) no debe rellenarse con esto.
+  const heroTitle = banner ? banner.title : 'CONECTIVIDAD INTELIGENTE';
+  const heroSubtitle = banner ? banner.subtitle : 'Importación directa de tecnología. Envío GRATIS a todo el país.';
+  const heroWords = (heroTitle || '').toUpperCase().split(' ').filter(Boolean);
   const heroMid = Math.ceil(heroWords.length / 2);
   const heroLine1 = heroWords.slice(0, heroMid).join(' ');
   const heroLine2 = heroWords.slice(heroMid).join(' ');
@@ -42,11 +46,13 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
       <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
         <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-xs font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-lg shadow-red-500/30">🆕 Nuevo</span>
-        <h1 key={`title-${index}`} className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6 animate-fadeInUp">
-          <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent"><EmojiSafeText text={heroLine1} /></span>
-          {heroLine2 && <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2"><EmojiSafeText text={heroLine2} /></span>}
-        </h1>
-        <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{banner?.subtitle || 'Importación directa de tecnología. Envío GRATIS a todo el país.'}</p>
+        {heroTitle && (
+          <h1 key={`title-${index}`} className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6 animate-fadeInUp">
+            <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent"><EmojiSafeText text={heroLine1} /></span>
+            {heroLine2 && <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2"><EmojiSafeText text={heroLine2} /></span>}
+          </h1>
+        )}
+        {heroSubtitle && <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{heroSubtitle}</p>}
         <div className="flex gap-4 justify-center flex-wrap">
           <Link href={banner?.link_url || '/productos'} className="bg-gradient-to-r from-ep-red to-red-500 hover:from-red-500 hover:to-ep-red text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-xl hover:scale-105 text-lg">{banner?.link_text || 'Ver productos'} →</Link>
           <a href={`https://wa.me/${settings.whatsapp_number}`} className="bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105">💬 Consultar</a>
