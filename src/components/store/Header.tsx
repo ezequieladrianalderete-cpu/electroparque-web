@@ -11,11 +11,15 @@ export function Header({ settings }: { settings: Record<string, string> }) {
   const logo = settings.logo_url;
   const storeName = settings.store_name || 'Electro Parque';
   const waFormatted = (settings.whatsapp_number || '541144128645').replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
+  const promoText = settings.promo_bar_text || `🚚 ¡Envío GRATIS en todas las compras! · 📞 ${waFormatted}`;
 
   return (
     <>
-      <div className="bg-gradient-to-r from-ep-navy via-ep-navy-light to-ep-navy text-white text-xs text-center py-2 px-4 font-medium">
-        🚚 ¡Envío GRATIS en todas las compras! · 📞 {waFormatted}
+      <div className="bg-gradient-to-r from-ep-navy via-ep-navy-light to-ep-navy text-white text-xs py-2 font-medium overflow-hidden whitespace-nowrap">
+        <div className="inline-flex animate-marquee">
+          <span className="inline-block px-8">{promoText}</span>
+          <span className="inline-block px-8">{promoText}</span>
+        </div>
       </div>
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16 sm:h-20 md:h-24 lg:h-28">
