@@ -35,7 +35,7 @@ export function VideoTestimonialCarousel({ videos }: { videos: VideoTestimonial[
           <div key={v.id} className="flex-shrink-0 w-52 snap-start">
             <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-gray-900 shadow-sm">
               <video
-                ref={el => { videoRefs.current[v.id] = el; }}
+                ref={el => { videoRefs.current[v.id] = el; if (el) el.muted = true; }}
                 src={v.video_url}
                 poster={v.thumbnail_url || undefined}
                 className="w-full h-full object-cover"

@@ -1,9 +1,19 @@
+'use client';
 import type { ProductContentBlock as ContentBlock } from '@/types';
+
+// Fuerza el mute por código además del atributo HTML — en el celular a veces el navegador
+// no llega a "ver" el video como silenciado a tiempo y bloquea el autoplay.
+function setAutoplayVideoRef(el: HTMLVideoElement | null) {
+  if (!el) return;
+  el.muted = true;
+  el.play().catch(() => {});
+}
 
 export function ProductVideoBlock({ block }: { block: ContentBlock }) {
   return (
     <section className="relative overflow-hidden text-white px-4 py-14 sm:py-16 min-h-[380px] sm:min-h-[460px] md:min-h-[520px] flex items-center">
       <video
+        ref={setAutoplayVideoRef}
         className="absolute inset-0 w-full h-full object-cover"
         src={block.video_url!}
         poster={block.image_url || undefined}

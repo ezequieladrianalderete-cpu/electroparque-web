@@ -48,8 +48,8 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
         <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-xs font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-lg shadow-red-500/30">🆕 Nuevo</span>
         {heroTitle && (
           <h1 key={`title-${index}`} className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6 animate-fadeInUp">
-            <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent"><EmojiSafeText text={heroLine1} /></span>
-            {heroLine2 && <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2"><EmojiSafeText text={heroLine2} /></span>}
+            <span className="block"><EmojiSafeText text={heroLine1} className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent" /></span>
+            {heroLine2 && <span className="block mt-2"><EmojiSafeText text={heroLine2} className="bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent" /></span>}
           </h1>
         )}
         {heroSubtitle && <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{heroSubtitle}</p>}

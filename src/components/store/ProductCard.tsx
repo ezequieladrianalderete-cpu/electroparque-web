@@ -41,7 +41,7 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
         onMouseLeave={() => setPreviewPlaying(false)}>
         <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
           {previewVideoUrl && previewPlaying ? (
-            <video src={previewVideoUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />
+            <video ref={el => { if (el) { el.muted = true; el.play().catch(() => {}); } }} src={previewVideoUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />
           ) : primaryImage ? (
             <Image src={primaryImage.url} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
           ) : (

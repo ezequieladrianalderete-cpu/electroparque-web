@@ -1,11 +1,22 @@
+'use client';
 import Link from 'next/link';
 import type { Banner } from '@/types';
+
+// Fuerza el mute por código (no solo por el atributo HTML) y arranca la reproducción a mano.
+// En el celular, si el navegador no llega a "ver" el video como silenciado a tiempo,
+// bloquea el autoplay y el video queda esperando a que alguien lo toque.
+function setAutoplayVideoRef(el: HTMLVideoElement | null) {
+  if (!el) return;
+  el.muted = true;
+  el.play().catch(() => {});
+}
 
 export function VideoBanner({ banner }: { banner: Banner }) {
   return (
     <section className="relative overflow-hidden text-white px-4 py-14 sm:py-16 min-h-[420px] sm:min-h-[500px] md:min-h-[600px] flex items-center">
       {banner.video_url ? (
         <video
+          ref={setAutoplayVideoRef}
           className="absolute inset-0 w-full h-full object-cover"
           src={banner.video_url}
           poster={banner.image_mobile_url || banner.image_url || undefined}
