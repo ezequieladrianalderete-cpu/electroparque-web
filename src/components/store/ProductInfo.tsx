@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Zap, MessageCircle, Heart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
+import { useWishlist } from '@/store/wishlist';
 import { useRouter } from 'next/navigation';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
@@ -11,8 +12,10 @@ import type { Product, Review } from '@/types';
 
 export function ProductInfo({ product, reviews, avgRating, offers = [] }: { product: Product; reviews: Review[]; avgRating: string | null; offers?: OfferLike[] }) {
   const { addItem, buyNow } = useCart();
+  const { has, toggle } = useWishlist();
   const settings = useStoreSettings();
   const router = useRouter();
+  const isFavorite = has(product.id);
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0]?.id || '');
   const [qty, setQty] = useState(1);
   const variant = product.variants?.find(v => v.id === selectedVariant);
@@ -32,8 +35,17 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
 
   return (
     <div className="space-y-5">
-      {product.category && <span className="text-ep-red text-xs font-bold uppercase tracking-wider">{product.category.name}</span>}
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          {product.category && <span className="text-ep-red text-xs font-bold uppercase tracking-wider">{product.category.name}</span>}
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
+        </div>
+        <button onClick={() => toggle(product.id)}
+          className="flex-shrink-0 border-2 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+          title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>
+          <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-ep-red text-ep-red' : 'text-gray-400'}`} />
+        </button>
+      </div>
 
       {avgRating && (
         <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Product, ProductVariant } from '@/types';
 
 interface CartItem { product: Product; variant?: ProductVariant; quantity: number; }
@@ -14,7 +15,7 @@ interface CartStore {
   buyNow: (product: Product, variant?: ProductVariant, qty?: number) => void;
 }
 
-export const useCart = create<CartStore>((set, get) => ({
+export const useCart = create<CartStore>()(persist((set, get) => ({
   items: [], isOpen: false,
   addItem: (product, variant) => set(s => {
     const key = product.id + (variant?.id || '');
@@ -29,4 +30,8 @@ export const useCart = create<CartStore>((set, get) => ({
   total: () => get().items.reduce((t, i) => t + (i.product.price + (i.variant?.price_modifier || 0)) * i.quantity, 0),
   count: () => get().items.reduce((t, i) => t + i.quantity, 0),
   buyNow: (product, variant, qty = 1) => set({ items: [{ product, variant, quantity: qty }], isOpen: false }),
+}), {
+  name: 'ep-cart-storage',
+  storage: createJSONStorage(() => localStorage),
+  partialize: (s) => ({ items: s.items }),
 }));

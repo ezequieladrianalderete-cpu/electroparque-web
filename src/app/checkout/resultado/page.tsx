@@ -1,6 +1,14 @@
 export const dynamic = 'force-dynamic';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+
+// Esta página actualiza y lee un pedido a partir de un ID en la URL (venís acá redirigido
+// desde MercadoPago/GoCuotas), algo que ya no puede hacerse con la clave pública (ver
+// migración restrict_anon_orders_access) — corre en el servidor, así que usar la service
+// role acá es seguro y no queda expuesta al navegador.
+function adminClient() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+}
 
 interface Props { searchParams: Promise<{
   status?: string;
@@ -13,7 +21,7 @@ interface Props { searchParams: Promise<{
 
 export default async function ResultadoPage({ searchParams }: Props) {
   const params = await searchParams;
-  const supabase = await createClient();
+  const supabase = adminClient();
 
   const paymentStatus = params.collection_status || params.status || 'unknown';
   const paymentId = params.payment_id || params.collection_id || '';

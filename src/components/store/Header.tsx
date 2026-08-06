@@ -1,13 +1,15 @@
 'use client';
 import Link from 'next/link';
-import { ShoppingCart, Search, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/store/cart';
+import { useWishlist } from '@/store/wishlist';
 import { CartDrawer } from './CartDrawer';
 
 export function Header({ settings }: { settings: Record<string, string> }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { count, toggleCart } = useCart();
+  const { ids: favoriteIds } = useWishlist();
   const logo = settings.logo_url;
   const storeName = settings.store_name || 'Electro Parque';
   const waFormatted = (settings.whatsapp_number || '541144128645').replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
@@ -45,6 +47,10 @@ export function Header({ settings }: { settings: Record<string, string> }) {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/buscar" className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors"><Search className="w-5 h-5 text-gray-600" /></Link>
+            <Link href="/favoritos" className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors relative">
+              <Heart className="w-5 h-5 text-gray-600" />
+              {favoriteIds.length > 0 && <span className="absolute -top-0.5 -right-0.5 bg-ep-red text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{favoriteIds.length}</span>}
+            </Link>
             <button onClick={toggleCart} className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors relative">
               <ShoppingCart className="w-5 h-5 text-gray-600" />
               {count() > 0 && <span className="absolute -top-0.5 -right-0.5 bg-ep-red text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce">{count()}</span>}

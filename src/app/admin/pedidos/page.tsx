@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
-import { ArrowLeft, ChevronDown, Package, Eye } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Package, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUSES = [
@@ -20,6 +20,7 @@ export default function PedidosPage() {
   const [loaded, setLoaded] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { if (!authLoading) load(); }, [authLoading]);
   const load = async () => {
@@ -29,6 +30,17 @@ export default function PedidosPage() {
 
   const changeStatus = async (orderId: string, newStatus: string) => {
     await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
+    await load();
+  };
+
+  const toggleSelected = (id: string) => setSelectedIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const deleteOrders = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`¿Eliminar ${ids.length} pedido${ids.length > 1 ? 's' : ''}? Esta acción no se puede deshacer.`)) return;
+    await supabase.from('orders').delete().in('id', ids);
+    setSelectedIds(new Set());
+    if (expandedId && ids.includes(expandedId)) setExpandedId(null);
     await load();
   };
 
@@ -49,12 +61,28 @@ export default function PedidosPage() {
 
       <div className="max-w-5xl mx-auto p-6">
         {/* Filters */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        <div className="flex gap-2 flex-wrap mb-3">
           <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === 'all' ? 'bg-ep-navy text-white' : 'bg-white border text-gray-600'}`}>Todos ({orders.length})</button>
           {STATUSES.filter(s => s.value !== 'cancelled').map(s => {
             const count = orders.filter(o => o.status === s.value).length;
             return <button key={s.value} onClick={() => setFilter(s.value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === s.value ? 'bg-ep-navy text-white' : 'bg-white border text-gray-600'}`}>{s.label} ({count})</button>;
           })}
+        </div>
+
+        {/* Selección masiva */}
+        <div className="flex items-center gap-3 mb-6 text-xs">
+          <label className="flex items-center gap-1.5 text-gray-500 cursor-pointer">
+            <input type="checkbox"
+              checked={filtered.length > 0 && filtered.every(o => selectedIds.has(o.id))}
+              onChange={e => setSelectedIds(e.target.checked ? new Set(filtered.map(o => o.id)) : new Set())}
+              className="w-3.5 h-3.5 accent-[#1c2f6b]"/>
+            Seleccionar todos {filter !== 'all' ? `(${getStatus(filter).label})` : ''}
+          </label>
+          {selectedIds.size > 0 && (
+            <button onClick={() => deleteOrders([...selectedIds])} className="flex items-center gap-1.5 bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">
+              <Trash2 className="w-3.5 h-3.5"/> Eliminar seleccionados ({selectedIds.size})
+            </button>
+          )}
         </div>
 
         {filtered.length === 0 ? (
@@ -71,6 +99,7 @@ export default function PedidosPage() {
               return (
                 <div key={o.id} className="bg-white rounded-xl border overflow-hidden hover:shadow-md transition-shadow">
                   <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
+                    <input type="checkbox" checked={selectedIds.has(o.id)} onClick={e => e.stopPropagation()} onChange={() => toggleSelected(o.id)} className="w-3.5 h-3.5 accent-[#1c2f6b] flex-shrink-0"/>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-bold text-ep-navy">#{o.order_number}</span>
@@ -121,11 +150,16 @@ export default function PedidosPage() {
                         </div>
                       </div>
 
-                      {/* Quick WhatsApp */}
-                      <a href={`https://wa.me/54${o.customer_phone?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${o.customer_name}! Te escribimos de Electro Parque por tu pedido #${o.order_number}. `)}`}
-                        target="_blank" className="inline-flex items-center gap-2 bg-green-500 text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
-                        💬 Contactar cliente
-                      </a>
+                      {/* Quick WhatsApp + eliminar */}
+                      <div className="flex gap-2">
+                        <a href={`https://wa.me/54${o.customer_phone?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${o.customer_name}! Te escribimos de Electro Parque por tu pedido #${o.order_number}. `)}`}
+                          target="_blank" className="inline-flex items-center gap-2 bg-green-500 text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                          💬 Contactar cliente
+                        </a>
+                        <button onClick={() => deleteOrders([o.id])} className="inline-flex items-center gap-2 bg-red-50 text-red-600 font-bold text-sm px-4 py-2 rounded-lg hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-4 h-4"/> Eliminar pedido
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

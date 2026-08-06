@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Zap, Play, X } from 'lucide-react';
+import { ShoppingCart, Zap, Play, X, Heart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
+import { useWishlist } from '@/store/wishlist';
 import { useRouter } from 'next/navigation';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import { OfferCountdown } from './OfferCountdown';
@@ -12,8 +13,10 @@ import type { Product } from '@/types';
 
 export function ProductCard({ product, offers = [] }: { product: Product; offers?: OfferLike[] }) {
   const { addItem, buyNow } = useCart();
+  const { has, toggle } = useWishlist();
   const router = useRouter();
   const [previewPlaying, setPreviewPlaying] = useState(false);
+  const isFavorite = has(product.id);
   const primaryImage = product.images?.find(i => i.is_primary) || product.images?.[0];
   // El preview solo funciona con un video subido directo (no un link de YouTube, que no se puede
   // reproducir así de simple encima de la miniatura).
@@ -48,7 +51,15 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
             <span className="text-5xl group-hover:scale-110 transition-transform">📦</span>
           )}
           {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
-          {product.is_featured && <span className="absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
+          <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
+            {product.is_featured && <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
+            <button
+              onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
+              className="bg-white/90 hover:bg-white w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-colors"
+              title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>
+              <Heart className={`w-3.5 h-3.5 transition-colors ${isFavorite ? 'fill-ep-red text-ep-red' : 'text-gray-400'}`} />
+            </button>
+          </div>
           {previewVideoUrl && (
             <button
               onClick={e => { e.preventDefault(); e.stopPropagation(); setPreviewPlaying(p => !p); }}

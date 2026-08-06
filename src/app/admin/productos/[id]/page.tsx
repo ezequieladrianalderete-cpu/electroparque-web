@@ -130,6 +130,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       is_active: form.is_active, is_featured: form.is_featured,
       tags: form.tags ? form.tags.split(',').map((t:string) => t.trim()) : [],
       specs: specsObj, video_url: videoUrl,
+      weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : null,
+      length_cm: form.length_cm ? parseFloat(form.length_cm) : null,
+      width_cm: form.width_cm ? parseFloat(form.width_cm) : null,
+      height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
     }).eq('id', id);
 
     if (error) { setMsg('Error: ' + error.message); setSaving(false); return; }
@@ -328,6 +332,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <div><label className="label">Precio ($)</label><input type="number" value={form.price||''} onChange={set('price')} className="input-field"/></div>
             <div><label className="label">Precio tachado ($)</label><input type="number" value={form.compare_at_price||''} onChange={set('compare_at_price')} className="input-field"/></div>
             <div><label className="label">SKU</label><input value={form.sku||''} onChange={set('sku')} className="input-field"/></div>
+          </div>
+          <div className="bg-white rounded-xl border p-5 space-y-3">
+            <h2 className="font-bold text-sm">📦 Envío</h2>
+            <p className="text-xs text-gray-400">Peso y medidas del paquete, para cotizar el envío automáticamente.</p>
+            <div><label className="label">Peso (kg)</label><input type="number" step="0.01" value={form.weight_kg||''} onChange={set('weight_kg')} className="input-field" placeholder="0.5"/></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div><label className="label">Largo (cm)</label><input type="number" value={form.length_cm||''} onChange={set('length_cm')} className="input-field" placeholder="20"/></div>
+              <div><label className="label">Ancho (cm)</label><input type="number" value={form.width_cm||''} onChange={set('width_cm')} className="input-field" placeholder="15"/></div>
+              <div><label className="label">Alto (cm)</label><input type="number" value={form.height_cm||''} onChange={set('height_cm')} className="input-field" placeholder="10"/></div>
+            </div>
           </div>
           <div className="bg-white rounded-xl border p-5">
             <h2 className="font-bold text-sm mb-2">📁 Categoría</h2>
