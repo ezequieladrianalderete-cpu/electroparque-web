@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { EmojiSafeText } from './EmojiSafeText';
 import type { Banner } from '@/types';
 
 const AUTO_ADVANCE_MS = 6000;
@@ -42,8 +43,8 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
       <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
         <span className="inline-block bg-gradient-to-r from-ep-red to-red-500 text-white text-xs font-bold px-5 py-2 rounded-full mb-6 uppercase tracking-widest shadow-lg shadow-red-500/30">🆕 Nuevo</span>
         <h1 key={`title-${index}`} className="text-5xl sm:text-7xl font-extrabold leading-[0.9] mb-6 animate-fadeInUp">
-          <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">{heroLine1}</span>
-          {heroLine2 && <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2">{heroLine2}</span>}
+          <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent"><EmojiSafeText text={heroLine1} /></span>
+          {heroLine2 && <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent mt-2"><EmojiSafeText text={heroLine2} /></span>}
         </h1>
         <p className="text-blue-200/80 text-lg max-w-xl mx-auto mb-10 leading-relaxed">{banner?.subtitle || 'Importación directa de tecnología. Envío GRATIS a todo el país.'}</p>
         <div className="flex gap-4 justify-center flex-wrap">

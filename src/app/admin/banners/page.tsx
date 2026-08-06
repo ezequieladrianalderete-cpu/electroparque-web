@@ -1,10 +1,22 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
-import { Plus, Trash2, Upload, ArrowLeft, ChevronUp, ChevronDown, Video, Smartphone } from 'lucide-react';
+import { Plus, Trash2, Upload, ArrowLeft, ChevronUp, ChevronDown, Video, Smartphone, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
-type Placement = 'hero' | 'promo';
+type Placement = 'hero' | 'promo' | 'after_reviews';
+
+const PLACEMENT_TABS: { value: Placement; label: string }[] = [
+  { value: 'hero', label: 'Carrusel principal' },
+  { value: 'promo', label: 'Banners con video' },
+  { value: 'after_reviews', label: 'Debajo de las reseñas' },
+];
+
+const PLACEMENT_HELP: Record<Placement, string> = {
+  hero: 'Todos los banners "Activo" rotan en la portada, arriba de todo. El orden de la lista es el orden en que se muestran — usá las flechas para acomodarlos.',
+  promo: 'Estos banners aparecen apilados más abajo en la portada, antes del pie de página. Pueden tener un video de fondo (se recomienda corto y liviano) o solo una imagen.',
+  after_reviews: 'Estos banners aparecen justo debajo de la sección de reseñas de clientes, antes de los videos de clientes. Mismo formato que los banners con video.',
+};
 
 export default function BannersPage() {
   const { supabase, loading: authLoading } = useAdmin();
@@ -17,6 +29,13 @@ export default function BannersPage() {
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', subtitle: '', link_url: '', link_text: '' });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImageMobileFile, setEditImageMobileFile] = useState<File | null>(null);
+  const [editVideoFile, setEditVideoFile] = useState<File | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => { if (!authLoading) load(); }, [authLoading, placement]);
   const load = async () => {
@@ -41,7 +60,7 @@ export default function BannersPage() {
       const { error } = await supabase.storage.from('banners').upload(path, imageMobileFile);
       if (!error) { const { data: { publicUrl } } = supabase.storage.from('banners').getPublicUrl(path); imageMobileUrl = publicUrl; }
     }
-    if (placement === 'promo' && videoFile) {
+    if (placement !== 'hero' && videoFile) {
       const path = `banner-video-${Date.now()}.${videoFile.name.split('.').pop()}`;
       const { error } = await supabase.storage.from('banners').upload(path, videoFile);
       if (!error) { const { data: { publicUrl } } = supabase.storage.from('banners').getPublicUrl(path); videoUrl = publicUrl; }
@@ -77,6 +96,35 @@ export default function BannersPage() {
     await load();
   };
 
+  const startEdit = (b: any) => {
+    setEditingId(b.id);
+    setEditForm({ title: b.title || '', subtitle: b.subtitle || '', link_url: b.link_url || '', link_text: b.link_text || '' });
+    setEditImageFile(null); setEditImageMobileFile(null); setEditVideoFile(null);
+  };
+  const cancelEdit = () => setEditingId(null);
+  const saveEdit = async (id: string) => {
+    setEditSaving(true);
+    const updates: any = { title: editForm.title, subtitle: editForm.subtitle, link_url: editForm.link_url, link_text: editForm.link_text };
+    if (editImageFile) {
+      const path = `banner-${Date.now()}.${editImageFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('banners').upload(path, editImageFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('banners').getPublicUrl(path); updates.image_url = publicUrl; }
+    }
+    if (editImageMobileFile) {
+      const path = `banner-mobile-${Date.now()}.${editImageMobileFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('banners').upload(path, editImageMobileFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('banners').getPublicUrl(path); updates.image_mobile_url = publicUrl; }
+    }
+    if (placement !== 'hero' && editVideoFile) {
+      const path = `banner-video-${Date.now()}.${editVideoFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('banners').upload(path, editVideoFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('banners').getPublicUrl(path); updates.video_url = publicUrl; }
+    }
+    await supabase.from('banners').update(updates).eq('id', id);
+    setEditingId(null);
+    await load(); setEditSaving(false);
+  };
+
   if (authLoading || !loaded) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Cargando...</div>;
 
   return (
@@ -86,14 +134,14 @@ export default function BannersPage() {
         <h1 className="font-bold text-lg">Banners</h1>
       </div>
       <div className="max-w-4xl mx-auto p-6 space-y-4">
-        <div className="flex gap-2 bg-white border rounded-xl p-1.5 w-fit">
-          <button onClick={() => setPlacement('hero')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${placement === 'hero' ? 'bg-ep-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Carrusel principal</button>
-          <button onClick={() => setPlacement('promo')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${placement === 'promo' ? 'bg-ep-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Banners con video</button>
+        <div className="flex gap-2 bg-white border rounded-xl p-1.5 w-fit flex-wrap">
+          {PLACEMENT_TABS.map(t => (
+            <button key={t.value} onClick={() => { setPlacement(t.value); setEditingId(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${placement === t.value ? 'bg-ep-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>{t.label}</button>
+          ))}
         </div>
         <p className="text-sm text-gray-500">
-          {placement === 'hero'
-            ? 'Todos los banners "Activo" rotan en la portada, arriba de todo. El orden de la lista es el orden en que se muestran — usá las flechas para acomodarlos.'
-            : 'Estos banners aparecen apilados más abajo en la portada, antes del pie de página. Pueden tener un video de fondo (se recomienda corto y liviano) o solo una imagen.'}
+          {PLACEMENT_HELP[placement]}
           {' '}Si tu foto es panorámica, subí también una versión vertical para celular — si no, en el teléfono se va a ver recortada.
         </p>
 
@@ -107,14 +155,14 @@ export default function BannersPage() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <label className="flex-1 min-w-[200px] border-2 border-dashed rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-ep-navy">
-              <Upload className="w-5 h-5 text-gray-400"/><span className="text-sm text-gray-500">{imageFile ? imageFile.name : placement === 'promo' ? 'Imagen de respaldo (1200×400)' : 'Subir imagen (1200×400)'}</span>
+              <Upload className="w-5 h-5 text-gray-400"/><span className="text-sm text-gray-500">{imageFile ? imageFile.name : placement !== 'hero' ? 'Imagen de respaldo (1200×400)' : 'Subir imagen (1200×400)'}</span>
               <input type="file" accept="image/*" onChange={e => { const f=e.target.files?.[0]; if(f){setImageFile(f);setPreview(URL.createObjectURL(f));} }} className="hidden"/>
             </label>
             <label className="flex-1 min-w-[200px] border-2 border-dashed rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-ep-navy">
               <Smartphone className="w-5 h-5 text-gray-400"/><span className="text-sm text-gray-500">{imageMobileFile ? imageMobileFile.name : 'Imagen para celular (opcional)'}</span>
               <input type="file" accept="image/*" onChange={e => { const f=e.target.files?.[0]; if(f) setImageMobileFile(f); }} className="hidden"/>
             </label>
-            {placement === 'promo' && (
+            {placement !== 'hero' && (
               <label className="flex-1 min-w-[200px] border-2 border-dashed rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-ep-navy">
                 <Video className="w-5 h-5 text-gray-400"/><span className="text-sm text-gray-500">{videoFile ? videoFile.name : 'Subir video de fondo'}</span>
                 <input type="file" accept="video/*" onChange={e => { const f=e.target.files?.[0]; if(f) setVideoFile(f); }} className="hidden"/>
@@ -126,7 +174,36 @@ export default function BannersPage() {
         </div>
 
         <div className="space-y-3">
-          {banners.map((b, i) => (
+          {banners.map((b, i) => editingId === b.id ? (
+            <div key={b.id} className="bg-white rounded-xl border-2 border-ep-navy p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input value={editForm.title} onChange={e => setEditForm(f=>({...f, title: e.target.value}))} className="input-field" placeholder="Título"/>
+                <input value={editForm.subtitle} onChange={e => setEditForm(f=>({...f, subtitle: e.target.value}))} className="input-field" placeholder="Subtítulo"/>
+                <input value={editForm.link_url} onChange={e => setEditForm(f=>({...f, link_url: e.target.value}))} className="input-field" placeholder="Link (/productos/...)"/>
+                <input value={editForm.link_text} onChange={e => setEditForm(f=>({...f, link_text: e.target.value}))} className="input-field" placeholder="Texto del botón"/>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex-1 min-w-[180px] border-2 border-dashed rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                  <Upload className="w-4 h-4 text-gray-400"/>{editImageFile ? editImageFile.name : 'Cambiar imagen (opcional)'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f=e.target.files?.[0]; if(f) setEditImageFile(f); }}/>
+                </label>
+                <label className="flex-1 min-w-[180px] border-2 border-dashed rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                  <Smartphone className="w-4 h-4 text-gray-400"/>{editImageMobileFile ? editImageMobileFile.name : 'Cambiar imagen celular'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f=e.target.files?.[0]; if(f) setEditImageMobileFile(f); }}/>
+                </label>
+                {placement !== 'hero' && (
+                  <label className="flex-1 min-w-[180px] border-2 border-dashed rounded-xl p-2.5 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                    <Video className="w-4 h-4 text-gray-400"/>{editVideoFile ? editVideoFile.name : 'Cambiar video'}
+                    <input type="file" accept="video/*" className="hidden" onChange={e => { const f=e.target.files?.[0]; if(f) setEditVideoFile(f); }}/>
+                  </label>
+                )}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={cancelEdit} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-50 flex items-center gap-1"><X className="w-4 h-4"/>Cancelar</button>
+                <button onClick={() => saveEdit(b.id)} disabled={editSaving} className="bg-ep-navy text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-1"><Check className="w-4 h-4"/>{editSaving ? 'Guardando...' : 'Guardar'}</button>
+              </div>
+            </div>
+          ) : (
             <div key={b.id} className="bg-white rounded-xl border p-4 flex items-center gap-4">
               <div className="flex flex-col gap-1">
                 <button onClick={() => move(i, -1)} disabled={i === 0} className="p-1 rounded-md border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed" title="Subir"><ChevronUp className="w-4 h-4"/></button>
@@ -141,6 +218,7 @@ export default function BannersPage() {
                 <p className="font-semibold text-sm truncate">{b.title}</p>
                 <p className="text-xs text-gray-400 truncate">{b.subtitle}</p>
               </div>
+              <button onClick={() => startEdit(b)} className="p-2 rounded-lg border text-gray-500 hover:bg-gray-50 hover:text-ep-navy" title="Editar texto y link"><Pencil className="w-4 h-4"/></button>
               <label className={`p-2 rounded-lg border cursor-pointer hover:bg-gray-50 ${b.image_mobile_url ? 'text-ep-navy border-ep-navy/40' : 'text-gray-400'}`} title={b.image_mobile_url ? 'Cambiar imagen para celular' : 'Subir imagen para celular'}>
                 <Smartphone className="w-4 h-4"/>
                 <input type="file" accept="image/*" className="hidden" onChange={e => uploadMobileImage(b.id, e.target.files?.[0])}/>

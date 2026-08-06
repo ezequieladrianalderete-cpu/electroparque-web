@@ -12,10 +12,11 @@ import { OfferCountdown } from '@/components/store/OfferCountdown';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }, { data: faqs }] = await Promise.all([
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: afterReviewsBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }, { data: faqs }] = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
+    supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'after_reviews').order('sort_order'),
     supabase.from('reviews').select('*').eq('is_approved', true).eq('is_featured', true).limit(6),
     supabase.from('reviews').select('rating').eq('is_approved', true),
     supabase.from('offers').select('*').eq('is_active', true).gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }),
@@ -156,6 +157,8 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {((afterReviewsBanners as unknown as Banner[]) || []).map(b => <VideoBanner key={b.id} banner={b} />)}
 
       {/* Video testimonials */}
       {videoTestimonials && videoTestimonials.length > 0 && (
