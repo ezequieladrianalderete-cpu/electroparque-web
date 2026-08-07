@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/store/Header';
 import { Footer } from '@/components/store/Footer';
 import { WhatsAppButton } from '@/components/store/WhatsAppButton';
+import { InstagramButton } from '@/components/store/InstagramButton';
 import { AnalyticsScripts } from '@/components/store/AnalyticsScripts';
 import { PageViewTracker } from '@/components/store/PageViewTracker';
 
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main className="min-h-screen">{children}</main>
         <Footer settings={settings} />
         <WhatsAppButton />
+        <InstagramButton />
       </body>
     </html>
   );
