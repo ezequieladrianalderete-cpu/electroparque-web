@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
     const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setError('Email o contraseña incorrectos'); setLoading(false); return; }
     if (data.session) {
-      router.push('/admin/dashboard');
+      router.push(data.session.user.user_metadata?.must_change_password ? '/admin/cambiar-password' : '/admin/dashboard');
       router.refresh();
     }
   };

@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es">
       <body className="antialiased" style={{ fontFamily: "system-ui, sans-serif" }}>
-        <AnalyticsScripts ga4Id={settings.ga4_measurement_id} pixelId={settings.facebook_pixel_id} />
+        <AnalyticsScripts ga4Id={settings.ga4_measurement_id} pixelId={settings.facebook_pixel_id} clarityId={settings.clarity_project_id} />
         <PageViewTracker />
         <Header settings={settings} />
         <main className="min-h-screen">{children}</main>

@@ -46,8 +46,9 @@ export default function ConfiguracionPage() {
   const createAdmin = async () => {
     if (!adminEmail || !adminPass || adminPass.length < 6) { setAdminMsg('Email y contraseña (mín 6 chars) requeridos'); return; }
     setCreatingAdmin(true); setAdminMsg('');
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
     const res = await fetch('/api/admin/create-user', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ email: adminEmail, password: adminPass })
     });
     const data = await res.json();
@@ -77,6 +78,7 @@ export default function ConfiguracionPage() {
     ['ga4_measurement_id','Google Analytics 4 — Measurement ID','G-XXXXXXXXXX'],
     ['facebook_pixel_id','Facebook Pixel — ID','1234567890123456'],
     ['meta_domain_verification','Meta — código de verificación de dominio','abc123xyz... (o pegá la etiqueta completa)'],
+    ['clarity_project_id','Microsoft Clarity — Project ID (mapa de calor)','abcd1234ef'],
   ];
 
   return (
