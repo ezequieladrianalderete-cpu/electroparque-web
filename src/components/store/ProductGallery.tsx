@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import type { ProductImage } from '@/types';
@@ -15,10 +15,25 @@ export function ProductGallery({ images, productName, videoUrl }: { images: Prod
   const isNativeVideo = videoUrl && !youtubeId;
   const hasVideo = !!videoUrl;
 
+  // Deslizar con el dedo para cambiar de foto en pantallas táctiles, además de las
+  // miniaturas y flechas que ya existían.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const SWIPE_THRESHOLD = 40;
+  const onTouchStart = (e: React.TouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current || sorted.length <= 1) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    setSelected(s => dx < 0 ? (s + 1) % sorted.length : (s - 1 + sorted.length) % sorted.length);
+  };
+
   return (
     <div>
       {/* Main view */}
-      <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden border">
+      <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden border"
+        onTouchStart={playingVideo ? undefined : onTouchStart} onTouchEnd={playingVideo ? undefined : onTouchEnd}>
         {playingVideo ? (
           // Video playing
           youtubeId ? (
@@ -66,7 +81,8 @@ export function ProductGallery({ images, productName, videoUrl }: { images: Prod
 
       {/* Lightbox */}
       {lightbox && current && (
-        <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center" onClick={() => setLightbox(false)}>
+        <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center" onClick={() => setLightbox(false)}
+          onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
           <button onClick={() => setLightbox(false)} className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full z-10"><X className="w-7 h-7" /></button>
           {sorted.length > 1 && (
             <>
