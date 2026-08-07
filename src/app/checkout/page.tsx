@@ -1,11 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
 import { ArrowLeft, ShieldCheck, CreditCard, MessageCircle, Percent } from 'lucide-react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { trackBeginCheckout } from '@/lib/analytics';
+import { logEvent } from '@/lib/track';
 
 export default function CheckoutPage() {
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -14,8 +16,21 @@ export default function CheckoutPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
 
   const set = (k:string) => (e:any) => setForm(f => ({...f, [k]: e.target.value}));
+
+  useEffect(() => { if (items.length > 0) { trackBeginCheckout(items, total()); logEvent('begin_checkout'); } }, []);
+
+  // Guarda el pedido como borrador a medida que la persona completa sus datos, aunque
+  // nunca llegue a tocar un botón de pago — así queda como "carrito abandonado" con sus
+  // datos de contacto en vez de perderse sin dejar rastro.
+  useEffect(() => {
+    if (!form.name || !form.phone || items.length === 0) return;
+    const timer = setTimeout(() => { saveOrder().catch(() => {}); }, 1500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, items.length]);
 
   if (items.length === 0) return (
     <div className="max-w-md mx-auto px-4 py-20 text-center">
@@ -43,9 +58,23 @@ export default function CheckoutPage() {
     };
   };
 
-  const saveOrder = async () => {
-    const { data, error: dbErr } = await supabase.from('orders').insert(buildOrder()).select().single();
+  const saveOrder = async (completed = false) => {
+    const payload = { ...buildOrder(), checkout_completed: completed };
+    // Si ya existe un borrador (se fue guardando solo mientras completaba el formulario),
+    // lo actualizamos en vez de crear un pedido duplicado. La actualización va por una ruta
+    // de servidor porque el navegador anónimo ya no tiene permiso de editar pedidos directo.
+    if (draftOrderId) {
+      const res = await fetch('/api/checkout/draft', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: draftOrderId, order: payload }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar el pedido');
+      return data;
+    }
+    const { data, error: dbErr } = await supabase.from('orders').insert(payload).select().single();
     if (dbErr) throw new Error(dbErr.message);
+    setDraftOrderId(data.id);
     return data;
   };
 
@@ -54,7 +83,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder();
+      const order = await saveOrder(true);
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,7 +109,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder();
+      const order = await saveOrder(true);
       const res = await fetch('/api/checkout/gocuotas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,7 +136,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder();
+      const order = await saveOrder(true);
       const itemLines = items.map(i => {
         let line = `• ${i.product.name}`;
         if (i.variant) line += ` (${i.variant.name}: ${i.variant.value})`;

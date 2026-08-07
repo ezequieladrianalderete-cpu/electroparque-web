@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { trackAddToCart } from '@/lib/analytics';
+import { logEvent } from '@/lib/track';
 import type { Product, ProductVariant } from '@/types';
 
 interface CartItem { product: Product; variant?: ProductVariant; quantity: number; }
@@ -18,6 +20,8 @@ interface CartStore {
 export const useCart = create<CartStore>()(persist((set, get) => ({
   items: [], isOpen: false,
   addItem: (product, variant) => set(s => {
+    trackAddToCart(product, 1);
+    logEvent('add_to_cart', { product_id: product.id, category_id: product.category_id || undefined });
     const key = product.id + (variant?.id || '');
     const existing = s.items.find(i => i.product.id + (i.variant?.id || '') === key);
     if (existing) return { items: s.items.map(i => i.product.id + (i.variant?.id || '') === key ? { ...i, quantity: i.quantity + 1 } : i), isOpen: true };

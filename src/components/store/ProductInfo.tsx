@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingCart, Zap, MessageCircle, Heart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/store/cart';
@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import { OfferCountdown } from './OfferCountdown';
+import { trackViewItem } from '@/lib/analytics';
+import { logEvent } from '@/lib/track';
 import type { Product, Review } from '@/types';
 
 export function ProductInfo({ product, reviews, avgRating, offers = [] }: { product: Product; reviews: Review[]; avgRating: string | null; offers?: OfferLike[] }) {
@@ -16,6 +18,11 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
   const settings = useStoreSettings();
   const router = useRouter();
   const isFavorite = has(product.id);
+
+  useEffect(() => {
+    trackViewItem(product);
+    logEvent('view_product', { product_id: product.id, category_id: product.category_id || undefined });
+  }, [product.id]);
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0]?.id || '');
   const [qty, setQty] = useState(1);
   const variant = product.variants?.find(v => v.id === selectedVariant);

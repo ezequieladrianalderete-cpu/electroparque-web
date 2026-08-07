@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { ProductCard } from '@/components/store/ProductCard';
+import { TrackCategoryView } from '@/components/store/TrackCategoryView';
 import type { Product } from '@/types';
 import type { OfferLike } from '@/lib/offers';
 
@@ -10,9 +11,10 @@ export default async function ProductosPage({ searchParams }: Props) {
   const params = await searchParams;
   const supabase = await createClient();
   let query = supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true);
+  let activeCategoryId: string | null = null;
   if (params.categoria) {
     const { data: cat } = await supabase.from('categories').select('id').eq('slug', params.categoria).single();
-    if (cat) query = query.eq('category_id', cat.id);
+    if (cat) { query = query.eq('category_id', cat.id); activeCategoryId = cat.id; }
   }
   const safeQ = params.q?.replace(/[,()]/g, ' ').trim();
   if (safeQ) query = query.or(`name.ilike.%${safeQ}%,short_description.ilike.%${safeQ}%`);
@@ -23,6 +25,7 @@ export default async function ProductosPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
+      {activeCategoryId && <TrackCategoryView categoryId={activeCategoryId} />}
       <div className="flex flex-col lg:flex-row gap-8">
         <aside className="lg:w-52 flex-shrink-0">
           <h2 className="text-lg font-bold mb-4">Categorías</h2>

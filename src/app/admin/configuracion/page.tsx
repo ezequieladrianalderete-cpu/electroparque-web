@@ -73,6 +73,12 @@ export default function ConfiguracionPage() {
     ['footer_text','Texto footer','© 2025 Electro Parque'],
   ];
 
+  const marketingFields: [string,string,string][] = [
+    ['ga4_measurement_id','Google Analytics 4 — Measurement ID','G-XXXXXXXXXX'],
+    ['facebook_pixel_id','Facebook Pixel — ID','1234567890123456'],
+    ['meta_domain_verification','Meta — código de verificación de dominio','abc123xyz... (o pegá la etiqueta completa)'],
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4 flex items-center gap-3">
@@ -99,6 +105,19 @@ export default function ConfiguracionPage() {
         <div className="bg-white rounded-xl border p-5 space-y-4">
           <h2 className="font-bold text-sm">⚙️ Datos de la tienda</h2>
           {fields.map(([key,label,ph])=>(<div key={key}><label className="label">{label}</label><input value={settings[key]||''} onChange={e=>setSettings(s=>({...s,[key]:e.target.value}))} className="input-field" placeholder={ph}/></div>))}
+        </div>
+
+        <div className="bg-white rounded-xl border p-5 space-y-4">
+          <div>
+            <h2 className="font-bold text-sm">📊 Marketing y analítica</h2>
+            <p className="text-xs text-gray-400 mt-1">Dejá el campo vacío para no activar esa integración. Los datos de comportamiento (qué productos ven, embudo de compra) se ven en el panel de Google Analytics/Meta, no acá dentro.</p>
+          </div>
+          {marketingFields.map(([key,label,ph])=>(<div key={key}><label className="label">{label}</label><input value={settings[key]||''} onChange={e=>setSettings(s=>({...s,[key]:e.target.value}))} className="input-field font-mono text-xs" placeholder={ph}/></div>))}
+          <div>
+            <label className="label">Catálogo de productos para Meta Commerce Manager</label>
+            <input readOnly value={`${process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque-web.vercel.app'}/api/feed/facebook`} onFocus={e=>e.target.select()} className="input-field font-mono text-xs bg-gray-50"/>
+            <p className="text-[11px] text-gray-400 mt-1">Pegá esta URL en Meta Commerce Manager → Catálogo → Agregar productos → Feed de datos. Se actualiza sola con tus precios y ofertas.</p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border p-5">

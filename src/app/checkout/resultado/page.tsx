@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { TrackPurchase } from '@/components/store/TrackPurchase';
 
 // Esta página actualiza y lee un pedido a partir de un ID en la URL (venís acá redirigido
 // desde MercadoPago/GoCuotas), algo que ya no puede hacerse con la clave pública (ver
@@ -71,6 +72,7 @@ export default async function ResultadoPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-20 text-center">
+      {order && paymentStatus === 'approved' && <TrackPurchase order={order} />}
       <div className="text-6xl mb-6">{c.icon}</div>
       <h1 className={`text-3xl font-extrabold mb-4 ${c.color}`}>{c.title}</h1>
       <p className="text-gray-600 mb-4">{c.desc}</p>
