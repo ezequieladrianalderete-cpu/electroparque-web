@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { EmojiSafeText } from './EmojiSafeText';
 import type { Banner } from '@/types';
 
-const AUTO_ADVANCE_MS = 6000;
+const AUTO_ADVANCE_MS = 7500;
 
 export function HeroCarousel({ banners }: { banners: Banner[] }) {
   const slides: (Banner | null)[] = banners.length > 0 ? banners : [null];
@@ -19,6 +19,20 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  // Deslizar con el dedo para cambiar de banner en pantallas táctiles — antes solo se
+  // podía esperar el avance automático o tocar los puntitos.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const SWIPE_THRESHOLD = 40;
+  const onTouchStart = (e: React.TouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current || slides.length <= 1) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    setIndex(i => dx < 0 ? (i + 1) % slides.length : (i - 1 + slides.length) % slides.length);
+  };
+
   const banner = slides[index];
   // El texto de relleno solo es para cuando no hay ningún banner cargado todavía —
   // un banner real con título/subtítulo vacío (foto sola) no debe rellenarse con esto.
@@ -30,14 +44,21 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
   const heroLine2 = heroWords.slice(heroMid).join(' ');
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-14 sm:py-20 md:py-24 px-4 min-h-[420px] sm:min-h-[500px] md:min-h-[580px] lg:min-h-[640px] flex items-center">
-      {banner?.image_url && (
-        <>
-          <div key={`${banner.id}-mobile`} className="absolute inset-0 bg-cover bg-center animate-scaleIn block sm:hidden" style={{ backgroundImage: `url(${banner.image_mobile_url || banner.image_url})` }} />
-          <div key={`${banner.id}-desktop`} className="absolute inset-0 bg-cover bg-center animate-scaleIn hidden sm:block" style={{ backgroundImage: `url(${banner.image_url})` }} />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#070e27]/65 via-ep-navy/55 to-[#1a3a8f]/60" />
-        </>
-      )}
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#070e27] via-ep-navy to-[#1a3a8f] text-white py-14 sm:py-20 md:py-24 px-4 min-h-[420px] sm:min-h-[500px] md:min-h-[580px] lg:min-h-[640px] flex items-center"
+      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="flex h-full sm:hidden transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(-${index * 100}%)` }}>
+          {slides.map((s, i) => (
+            <div key={i} className="w-full h-full flex-shrink-0 bg-cover bg-center" style={s?.image_url ? { backgroundImage: `url(${s.image_mobile_url || s.image_url})` } : undefined} />
+          ))}
+        </div>
+        <div className="hidden sm:flex h-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(-${index * 100}%)` }}>
+          {slides.map((s, i) => (
+            <div key={i} className="w-full h-full flex-shrink-0 bg-cover bg-center" style={s?.image_url ? { backgroundImage: `url(${s.image_url})` } : undefined} />
+          ))}
+        </div>
+      </div>
+      {banner?.image_url && <div className="absolute inset-0 bg-gradient-to-br from-[#070e27]/65 via-ep-navy/55 to-[#1a3a8f]/60" />}
       <div className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle at 20% 50%, #3b82f6 0%, transparent 50%), radial-gradient(circle at 80% 20%, #e10600 0%, transparent 40%), radial-gradient(circle at 60% 80%, #1e40af 0%, transparent 50%)'}}/>
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-ep-red/10 rounded-full blur-3xl animate-float"/>
