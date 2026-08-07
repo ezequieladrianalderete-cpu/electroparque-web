@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { findActiveOffer, applyOffer } from '@/lib/offers';
 
 // Feed de catálogo de productos en formato RSS + namespace de Google/Meta (g:), el que
 // pide Meta Commerce Manager para sincronizar Instagram/Facebook Shop. Se recalcula en
@@ -22,9 +23,12 @@ export async function GET() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque-web.vercel.app';
 
-  const { data: products } = await supabase.from('products')
-    .select('id,name,slug,short_description,description,price,is_active,images:product_images(url,is_primary,sort_order)')
-    .eq('is_active', true);
+  const [{ data: products }, { data: offers }] = await Promise.all([
+    supabase.from('products')
+      .select('id,name,slug,short_description,description,price,category_id,is_active,images:product_images(url,is_primary,sort_order)')
+      .eq('is_active', true),
+    supabase.from('offers').select('*').eq('is_active', true),
+  ]);
 
   const items = (products || []).map((p: any) => {
     const images = (p.images || []).slice().sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || a.sort_order - b.sort_order);
@@ -32,6 +36,13 @@ export async function GET() {
     if (!mainImage) return '';
     const description = stripHtml(p.short_description || p.description) || p.name;
     const link = `${baseUrl}/productos/${p.slug}`;
+
+    // Meta muestra "price" tachado y "sale_price" como el precio final solo si mandamos
+    // los dos — si el producto tiene una oferta activa, price queda como el de lista.
+    const offer = findActiveOffer(offers || [], { id: p.id, category_id: p.category_id });
+    const salePrice = offer ? applyOffer(Number(p.price), offer) : null;
+    const salePriceTag = salePrice !== null && salePrice < Number(p.price)
+      ? `\n    <g:sale_price>${salePrice.toFixed(2)} ARS</g:sale_price>` : '';
 
     return `  <item>
     <g:id>${xmlEscape(p.id)}</g:id>
@@ -41,7 +52,7 @@ export async function GET() {
     <g:image_link>${xmlEscape(mainImage)}</g:image_link>
     <g:availability>in stock</g:availability>
     <g:condition>new</g:condition>
-    <g:price>${Number(p.price).toFixed(2)} ARS</g:price>
+    <g:price>${Number(p.price).toFixed(2)} ARS</g:price>${salePriceTag}
     <g:brand>Electro Parque</g:brand>
   </item>`;
   }).filter(Boolean).join('\n');
