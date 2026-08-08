@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { notifyNewSale } from '@/lib/notify';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,11 +29,21 @@ export async function POST(req: NextRequest) {
         else if (payment.status === 'rejected' || payment.status === 'cancelled') newStatus = 'cancelled';
         else if (payment.status === 'refunded') newStatus = 'cancelled';
 
+        // Se pide el estado anterior para no mandar el aviso de nuevo si MP reintenta
+        // el mismo webhook (algo que hace seguido).
+        const { data: existingOrder } = await supabase.from('orders')
+          .select('status,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
+          .eq('id', payment.external_reference).single();
+
         await supabase.from('orders').update({
           status: newStatus,
           payment_id: String(paymentId),
           updated_at: new Date().toISOString(),
         }).eq('id', payment.external_reference);
+
+        if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
+          await notifyNewSale(existingOrder as any);
+        }
       }
     }
 

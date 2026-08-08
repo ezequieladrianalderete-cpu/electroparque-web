@@ -72,6 +72,7 @@ export default function ConfiguracionPage() {
     ['instagram_url','Instagram URL',''],
     ['facebook_url','Facebook URL',''],
     ['footer_text','Texto footer','© 2025 Electro Parque'],
+    ['order_notification_emails','Avisar nueva venta a estos emails (separados por coma)','vos@electroparque.com, otro@electroparque.com'],
   ];
 
   const marketingFields: [string,string,string][] = [

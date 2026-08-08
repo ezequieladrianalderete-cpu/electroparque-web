@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { notifyNewSale } from '@/lib/notify';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,11 +18,19 @@ export async function POST(req: NextRequest) {
     if (status === 'approved') newStatus = 'paid';
     else if (status === 'rejected' || status === 'cancelled' || status === 'expired') newStatus = 'cancelled';
 
+    const { data: existingOrder } = await supabase.from('orders')
+      .select('status,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
+      .eq('id', order_reference_id).single();
+
     await supabase.from('orders').update({
       status: newStatus,
       payment_id: order_id ? String(order_id) : null,
       updated_at: new Date().toISOString(),
     }).eq('id', order_reference_id);
+
+    if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
+      await notifyNewSale(existingOrder as any);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
