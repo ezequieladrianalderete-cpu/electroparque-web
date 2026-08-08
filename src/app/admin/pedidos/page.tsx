@@ -17,7 +17,7 @@ const STATUSES = [
 // Un pedido se considera "carrito abandonado" si nunca se confirmó una compra: quedó
 // cancelado, o quedó pendiente hace más de 1 hora sin que la persona llegara a tocar
 // pagar / coordinar por WhatsApp (le damos ese margen porque puede seguir escribiendo).
-const ABANDON_AFTER_MIN = 60;
+const ABANDON_AFTER_MIN = 20;
 function isAbandoned(o: any) {
   if (o.status === 'cancelled') return true;
   if (o.status !== 'pending' || o.checkout_completed) return false;
