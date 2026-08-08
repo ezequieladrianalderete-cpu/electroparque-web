@@ -46,6 +46,7 @@ export default async function DashboardPage() {
             ['🛒','Pedidos','/admin/pedidos','Ventas recibidas y carritos abandonados'],
             ['👥','Clientes','/admin/clientes','Repositorio de compradores'],
             ['📊','Estadísticas','/admin/estadisticas','Ventas, facturación y productos top'],
+            ['💚','Salud del sitio','/admin/salud','Chequeo de que todo funcione'],
             ['⭐','Reseñas','/admin/resenas','Aprobar opiniones'],
             ['🎬','Videos de clientes','/admin/videos-clientes','Carrusel de videos en la portada'],
             ['❓','Preguntas frecuentes','/admin/faqs','Dudas generales de la tienda'],
