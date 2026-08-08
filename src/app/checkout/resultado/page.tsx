@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { TrackPurchase } from '@/components/store/TrackPurchase';
+import { notifyNewSale } from '@/lib/notify';
 
 // Esta página actualiza y lee un pedido a partir de un ID en la URL (venís acá redirigido
 // desde MercadoPago/GoCuotas), algo que ya no puede hacerse con la clave pública (ver
@@ -24,7 +25,13 @@ export default async function ResultadoPage({ searchParams }: Props) {
   const params = await searchParams;
   const supabase = adminClient();
 
-  const paymentStatus = params.collection_status || params.status || 'unknown';
+  // MercadoPago usa "approved"/"rejected"; GoCuotas redirige acá con "success"/"failure" —
+  // se normaliza al vocabulario de MP para que el resto de la página (cálculo de estado,
+  // texto mostrado, mensaje de WhatsApp) funcione igual sin importar de dónde vino. Antes
+  // "success" no coincidía con nada y el pedido de GoCuotas quedaba mal marcado "pending"
+  // (podía incluso pisar un "paid" correcto que ya hubiera puesto el webhook).
+  const rawStatus = params.collection_status || params.status || 'unknown';
+  const paymentStatus = rawStatus === 'success' ? 'approved' : rawStatus === 'failure' ? 'rejected' : rawStatus;
   const paymentId = params.payment_id || params.collection_id || '';
   const orderId = params.external_reference || params.order || '';
 
@@ -40,6 +47,13 @@ export default async function ResultadoPage({ searchParams }: Props) {
     else if (paymentStatus === 'pending' || paymentStatus === 'in_process') newStatus = 'pending';
     else if (paymentStatus === 'rejected') newStatus = 'cancelled';
 
+    // Se guarda el estado previo para saber si esto es una confirmación nueva de verdad
+    // (y avisar por mail) o si el webhook ya la había procesado antes que esta redirección
+    // llegara — esta página suele llegar primero, así que sin este chequeo el aviso de
+    // venta nunca salía desde ningún lado (ni acá, que no lo tenía enganchado, ni el
+    // webhook, que se encontraba el pedido ya "paid" y lo daba por avisado).
+    const { data: before } = await supabase.from('orders').select('status').eq('id', orderId).single();
+
     if (paymentStatus !== 'unknown') {
       await supabase.from('orders').update({
         status: newStatus,
@@ -50,6 +64,10 @@ export default async function ResultadoPage({ searchParams }: Props) {
 
     const { data } = await supabase.from('orders').select('*').eq('id', orderId).single();
     order = data;
+
+    if (newStatus === 'paid' && before && before.status !== 'paid' && order) {
+      await notifyNewSale(order);
+    }
   }
 
   const config: Record<string, { icon: string; title: string; desc: string; color: string }> = {
