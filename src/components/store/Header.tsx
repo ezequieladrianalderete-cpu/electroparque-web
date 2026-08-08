@@ -13,7 +13,7 @@ export function Header({ settings }: { settings: Record<string, string> }) {
   const logo = settings.logo_url;
   const storeName = settings.store_name || 'Electro Parque';
   const waFormatted = (settings.whatsapp_number || '541144128645').replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 $2 $3-$4');
-  const promoText = settings.promo_bar_text || `🚚 ¡Envío GRATIS en todas las compras! · 📞 ${waFormatted}`;
+  const promoText = settings.promo_bar_text || `🚚 ¡Envío GRATIS a todo el país! · 📞 ${waFormatted}`;
 
   return (
     <>

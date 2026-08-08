@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
-import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
 import { ArrowLeft, ShieldCheck, CreditCard, MessageCircle, Percent } from 'lucide-react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
@@ -10,7 +9,6 @@ import { trackBeginCheckout } from '@/lib/analytics';
 import { logEvent } from '@/lib/track';
 
 export default function CheckoutPage() {
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   const { items, total, clearCart } = useCart();
   const settings = useStoreSettings();
   const [saving, setSaving] = useState(false);
@@ -60,21 +58,16 @@ export default function CheckoutPage() {
 
   const saveOrder = async (completed = false) => {
     const payload = { ...buildOrder(), checkout_completed: completed };
-    // Si ya existe un borrador (se fue guardando solo mientras completaba el formulario),
-    // lo actualizamos en vez de crear un pedido duplicado. La actualización va por una ruta
-    // de servidor porque el navegador anónimo ya no tiene permiso de editar pedidos directo.
-    if (draftOrderId) {
-      const res = await fetch('/api/checkout/draft', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: draftOrderId, order: payload }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo guardar el pedido');
-      return data;
-    }
-    const { data, error: dbErr } = await supabase.from('orders').insert(payload).select().single();
-    if (dbErr) throw new Error(dbErr.message);
-    setDraftOrderId(data.id);
+    // Crear y actualizar el pedido va siempre por esta ruta de servidor — el navegador
+    // anónimo no tiene permiso directo de leer de vuelta la fila que acaba de crear
+    // (insert().select()) ni de editarla, así que un insert/update directo desde acá falla.
+    const res = await fetch('/api/checkout/draft', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: draftOrderId, order: payload }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo guardar el pedido');
+    if (!draftOrderId) setDraftOrderId(data.id);
     return data;
   };
 

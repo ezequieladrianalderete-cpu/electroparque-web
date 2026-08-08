@@ -39,7 +39,7 @@ export default async function HomePage() {
       {/* Trust badges */}
       <div className="bg-gradient-to-r from-white via-gray-50 to-white border-y py-6 px-4">
         <div className="max-w-5xl mx-auto grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {[['🚚','Envío GRATIS','En todas las compras'],['🛡️','Garantía','30 días'],['💳','MercadoPago','Pago seguro'],['💬','WhatsApp','Respuesta rápida'],['🔄','Devoluciones','Sin preguntas'],['✅','Originales','Importación directa']].map(([i,t,s])=>(
+          {[['🚚','Envío GRATIS','A todo el país'],['🛡️','Garantía','30 días'],['💳','MercadoPago','Pago seguro'],['💬','WhatsApp','Respuesta rápida'],['🔄','Devoluciones','Sin preguntas'],['✅','Originales','Importación directa']].map(([i,t,s])=>(
             <div key={t} className="text-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <span className="text-2xl block animate-float" style={{animationDelay: `${Math.random()*2}s`}}>{i}</span>
               <p className="text-[10px] font-bold text-gray-800 mt-1.5">{t}</p>

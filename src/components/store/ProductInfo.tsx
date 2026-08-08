@@ -112,7 +112,7 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
       </a>
 
       <div className="grid grid-cols-3 gap-2">
-        {[['🚚','Envío GRATIS'],['🛡️','Garantía 30 días'],['💬','Soporte WhatsApp']].map(([icon,text])=>(
+        {[['🚚','Envío GRATIS a todo el país'],['🛡️','Garantía 30 días'],['💬','Soporte WhatsApp']].map(([icon,text])=>(
           <div key={text} className="text-center p-3 bg-gradient-to-br from-gray-50 to-white rounded-xl border text-xs hover:shadow-md transition-shadow">
             <span className="text-xl block mb-1">{icon}</span><span className="font-medium text-gray-700">{text}</span>
           </div>

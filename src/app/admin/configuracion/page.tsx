@@ -60,7 +60,7 @@ export default function ConfiguracionPage() {
   if (authLoading || !loaded) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Cargando...</div>;
 
   const fields: [string,string,string][] = [
-    ['promo_bar_text','Texto de la barra superior (con movimiento)','🚚 ¡Envío GRATIS en todas las compras! · 📞 +54 11 4412-8645'],
+    ['promo_bar_text','Texto de la barra superior (con movimiento)','🚚 ¡Envío GRATIS a todo el país! · 📞 +54 11 4412-8645'],
     ['store_name','Nombre de la tienda','Electro Parque'],
     ['store_tagline','Eslogan','Importación y distribución'],
     ['store_email','Email de contacto','contacto@electroparque.com'],
