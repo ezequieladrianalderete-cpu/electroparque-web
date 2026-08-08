@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { notifyNewSale } from '@/lib/notify';
+import { syncOrderToStockApp } from '@/lib/stockAppSync';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
         if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
           await notifyNewSale(existingOrder as any);
         }
+        if (newStatus === 'paid') await syncOrderToStockApp(supabase, payment.external_reference);
       }
     }
 

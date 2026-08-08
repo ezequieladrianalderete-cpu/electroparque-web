@@ -42,7 +42,12 @@ export default function PedidosPage() {
   };
 
   const changeStatus = async (orderId: string, newStatus: string) => {
-    await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch('/api/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ orderId, status: newStatus }),
+    });
     await load();
   };
 
