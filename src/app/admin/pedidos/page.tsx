@@ -149,6 +149,9 @@ export default function PedidosPage() {
                       <div className="flex items-center gap-2 mb-1">
                         {o.order_number && <span className="font-bold text-ep-navy">#{o.order_number}</span>}
                         <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${status.color}`}>{status.label}</span>
+                        {o.status === 'paid' && !o.stock_synced_at && (
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700" title="El stock de este pedido todavía no se descontó en stock-app">⚠️ Stock pendiente</span>
+                        )}
                       </div>
                       <p className="text-sm font-medium">{o.customer_name || <span className="text-gray-400 italic">Sin nombre</span>}</p>
                       <p className="text-xs text-gray-400">{o.customer_phone || o.customer_email || '—'} · {new Date(o.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</p>
@@ -162,6 +165,12 @@ export default function PedidosPage() {
 
                   {isExpanded && (
                     <div className="border-t p-4 bg-gray-50 space-y-4 animate-slideDown">
+                      {o.status === 'paid' && !o.stock_synced_at && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                          <p className="text-xs text-orange-700 font-medium">⚠️ El stock de este pedido todavía no se descontó en stock-app (falló la sincronización automática).</p>
+                          <button onClick={() => changeStatus(o.id, 'paid')} className="text-xs font-bold text-orange-700 bg-white border border-orange-300 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors whitespace-nowrap">🔄 Reintentar</button>
+                        </div>
+                      )}
                       {/* Items */}
                       <div>
                         <p className="text-xs font-bold text-gray-500 uppercase mb-2">Productos</p>

@@ -59,7 +59,10 @@ export async function POST(req: NextRequest) {
         if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
           await notifyNewSale(existingOrder as any);
         }
-        if (newStatus === 'paid') await syncOrderToStockApp(supabase, payment.external_reference);
+        if (newStatus === 'paid') {
+          try { await syncOrderToStockApp(supabase, payment.external_reference); }
+          catch (syncErr: any) { console.error(`Webhook MP: fallo la sync de stock del pedido ${payment.external_reference}: ${syncErr?.message || syncErr}`); }
+        }
       }
     }
 
