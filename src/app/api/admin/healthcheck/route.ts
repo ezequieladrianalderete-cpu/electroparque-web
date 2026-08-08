@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   // 1) Variables de entorno críticas
   ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
     'MERCADOPAGO_ACCESS_TOKEN', 'GOCUOTAS_EMAIL', 'GOCUOTAS_API_KEY',
-    'RESEND_API_KEY', 'STOCK_APP_SECRET'].forEach(k => checks.push(envCheck(k)));
+    'RESEND_API_KEY', 'STOCK_APP_SECRET', 'STOCK_APP_SUPABASE_URL', 'STOCK_APP_SUPABASE_ANON_KEY'].forEach(k => checks.push(envCheck(k)));
 
   // 2) Conexión a la base
   try {
@@ -131,6 +131,20 @@ export async function GET(req: NextRequest) {
     checks.push({ name: 'Endpoint de stock-app (rechaza secretos incorrectos)', ok: res.status === 401, detail: res.status === 401 ? 'protegido correctamente' : `esperaba HTTP 401, llegó ${res.status}` });
   } catch (e: any) {
     checks.push({ name: 'Endpoint de stock-app (rechaza secretos incorrectos)', ok: false, detail: e.message });
+  }
+
+  // 9.5) Conexión real a la base del stock-app (otro proyecto de Supabase) — confirma que
+  // las claves recién cargadas funcionan de verdad, no solo que están presentes.
+  try {
+    if (!process.env.STOCK_APP_SUPABASE_URL || !process.env.STOCK_APP_SUPABASE_ANON_KEY) {
+      checks.push({ name: 'Conexión a la base del stock-app', ok: false, detail: 'faltan STOCK_APP_SUPABASE_URL/ANON_KEY' });
+    } else {
+      const stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY);
+      const { error, count } = await stockDb.from('stock').select('*', { count: 'exact', head: true });
+      checks.push({ name: 'Conexión a la base del stock-app', ok: !error, detail: error ? error.message : `${count ?? 0} artículos encontrados en stock` });
+    }
+  } catch (e: any) {
+    checks.push({ name: 'Conexión a la base del stock-app', ok: false, detail: e.message });
   }
 
   // 10) El catálogo para Meta responde y trae productos
