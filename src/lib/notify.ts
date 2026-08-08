@@ -10,17 +10,32 @@ interface OrderForNotify {
   shipping_address?: { address?: string; city?: string; province?: string; zip?: string } | null;
 }
 
+// DEBUG TEMPORAL: deja un rastro en store_settings de hasta dónde llegó la ejecución,
+// porque no tenemos forma de leer los logs de Vercel desde acá. Se saca en cuanto
+// encontremos el problema real.
+async function debugMark(supabase: any, step: string) {
+  try {
+    await supabase.from('store_settings').upsert(
+      { key: 'debug_last_notify_attempt', value: `${new Date().toISOString()} — ${step}`, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+  } catch { /* no-op */ }
+}
+
 // Best-effort: si falla o no está configurado, nunca debe romper el webhook de pago que lo llama
 // — pero sí queda registrado en los logs para poder ver por qué, en vez de fallar en silencio.
 export async function notifyNewSale(order: OrderForNotify) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  await debugMark(supabase, `notifyNewSale llamada para pedido #${order.order_number}`);
+
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) { console.error('notifyNewSale: falta RESEND_API_KEY'); return; }
+  if (!apiKey) { console.error('notifyNewSale: falta RESEND_API_KEY'); await debugMark(supabase, 'falta RESEND_API_KEY'); return; }
 
   try {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { data } = await supabase.from('store_settings').select('value').eq('key', 'order_notification_emails').single();
     const emails = (data?.value || '').split(',').map((e: string) => e.trim()).filter(Boolean);
-    if (emails.length === 0) { console.error('notifyNewSale: no hay emails cargados en order_notification_emails'); return; }
+    if (emails.length === 0) { console.error('notifyNewSale: no hay emails cargados en order_notification_emails'); await debugMark(supabase, 'no hay emails cargados'); return; }
+    await debugMark(supabase, `mandando a ${emails.join(', ')}`);
 
     const itemsHtml = order.items.map(i => `<li>${i.quantity}x ${i.name}${i.variant ? ` (${i.variant})` : ''}</li>`).join('');
     const addr = order.shipping_address;
@@ -53,8 +68,13 @@ export async function notifyNewSale(order: OrderForNotify) {
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error(`notifyNewSale: Resend respondió HTTP ${res.status}: ${body}`);
+      await debugMark(supabase, `Resend HTTP ${res.status}: ${body}`.slice(0, 400));
+    } else {
+      const body = await res.json().catch(() => ({}));
+      await debugMark(supabase, `Resend OK, id ${body.id}`);
     }
   } catch (err: any) {
     console.error('notifyNewSale: error inesperado:', err?.message || err);
+    await debugMark(supabase, `excepción: ${err?.message || err}`.slice(0, 400));
   }
 }
