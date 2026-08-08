@@ -3,10 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 // Base de stock-app (otro proyecto, otra Supabase). Usa su anon key porque ahí la
 // tabla "stock"/"movimientos" ya tiene RLS abierta a propósito (es una herramienta
 // interna) — mismo criterio que ya se usa para publicar productos en sentido inverso.
-const stockDb = createClient(
-  process.env.STOCK_APP_SUPABASE_URL!,
-  process.env.STOCK_APP_SUPABASE_ANON_KEY!
-);
+//
+// Se crea el cliente recién cuando hace falta (no al importar el módulo): Next.js
+// ejecuta el código de la ruta durante el build para "recolectar datos de la página",
+// y createClient() tira una excepción de inmediato si la URL falta o es inválida —
+// eso rompía el build entero apenas faltaba STOCK_APP_SUPABASE_URL/ANON_KEY en Vercel,
+// aunque esta función nunca llegara a ejecutarse en tiempo de request.
+let _stockDb: any = null;
+function stockDb() {
+  if (!_stockDb) {
+    if (!process.env.STOCK_APP_SUPABASE_URL || !process.env.STOCK_APP_SUPABASE_ANON_KEY) {
+      throw new Error('Falta STOCK_APP_SUPABASE_URL y/o STOCK_APP_SUPABASE_ANON_KEY');
+    }
+    _stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY);
+  }
+  return _stockDb;
+}
 
 // Cuando un pedido de la tienda se paga, descuenta el stock real en stock-app y
 // registra la venta (canal 'web') para que aparezca en Facturación — mismo mecanismo
@@ -44,13 +56,13 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
     if (!stockAppId) continue;
     const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
 
-    const { data: prod } = await stockDb.from('stock').select('id,sku,articulo,cantidades').eq('id', stockAppId).maybeSingle();
+    const { data: prod } = await stockDb().from('stock').select('id,sku,articulo,cantidades').eq('id', stockAppId).maybeSingle();
     if (!prod) continue;
 
     const anterior = prod.cantidades || 0;
     const nuevo = Math.max(0, anterior - qty);
-    await stockDb.from('stock').update({ cantidades: nuevo, estado: nuevo > 0 ? 'STOCK' : 'SIN STOCK' }).eq('id', stockAppId);
-    await stockDb.from('movimientos').insert({
+    await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevo > 0 ? 'STOCK' : 'SIN STOCK' }).eq('id', stockAppId);
+    await stockDb().from('movimientos').insert({
       fecha, hora, usuario: 'Tienda Web', articulo: item.name || prod.articulo,
       sku: prod.sku, tipo: 'venta', cantidad: qty, stock_anterior: anterior, stock_nuevo: nuevo,
       canal: 'web', monto: Number(item.subtotal) || 0,

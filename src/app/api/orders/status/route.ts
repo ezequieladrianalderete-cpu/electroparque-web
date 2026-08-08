@@ -20,7 +20,13 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase.from('orders').update({ status, updated_at: new Date().toISOString() }).eq('id', orderId);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  if (status === 'paid') await syncOrderToStockApp(supabase, orderId);
+  // Si la sincronización con stock-app falla (por ejemplo, todavía no están cargadas
+  // las claves STOCK_APP_SUPABASE_URL/ANON_KEY en Vercel), no debe impedir que el
+  // cambio de estado del pedido en sí se guarde correctamente.
+  if (status === 'paid') {
+    try { await syncOrderToStockApp(supabase, orderId); }
+    catch (err: any) { console.error('syncOrderToStockApp falló:', err?.message || err); }
+  }
 
   return NextResponse.json({ ok: true });
 }
