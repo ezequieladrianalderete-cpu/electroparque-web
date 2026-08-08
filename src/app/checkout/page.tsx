@@ -73,7 +73,7 @@ export default function CheckoutPage() {
 
   // PAGAR CON MERCADOPAGO
   const handleMercadoPago = async () => {
-    if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
+    if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
       const order = await saveOrder(true);
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
 
   // PAGAR EN CUOTAS CON GOCUOTAS
   const handleGoCuotas = async () => {
-    if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
+    if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
       const order = await saveOrder(true);
@@ -126,7 +126,7 @@ export default function CheckoutPage() {
 
   // PAGAR POR WHATSAPP
   const handleWhatsApp = async () => {
-    if (!form.name || !form.phone) { setError('Nombre y teléfono son obligatorios'); return; }
+    if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
       const order = await saveOrder(true);
@@ -162,8 +162,8 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 sm:col-span-1"><label className="label">Nombre completo *</label><input value={form.name} onChange={set('name')} className="input-field" placeholder="Juan Pérez"/></div>
               <div className="col-span-2 sm:col-span-1"><label className="label">Teléfono *</label><input value={form.phone} onChange={set('phone')} className="input-field" placeholder="11 4412-8645" type="tel"/></div>
-              <div className="col-span-2 sm:col-span-1"><label className="label">Email</label><input value={form.email} onChange={set('email')} className="input-field" placeholder="tu@email.com" type="email"/></div>
-              <div className="col-span-2 sm:col-span-1"><label className="label">DNI / CUIT</label><input value={form.dni} onChange={set('dni')} className="input-field" placeholder="12345678"/></div>
+              <div className="col-span-2 sm:col-span-1"><label className="label">Email *</label><input value={form.email} onChange={set('email')} className="input-field" placeholder="tu@email.com" type="email"/></div>
+              <div className="col-span-2 sm:col-span-1"><label className="label">DNI / CUIT *</label><input value={form.dni} onChange={set('dni')} className="input-field" placeholder="12345678"/></div>
             </div>
           </div>
           <div className="bg-white border rounded-2xl p-6">
