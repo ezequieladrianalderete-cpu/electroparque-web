@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
@@ -14,7 +14,13 @@ export default function CheckoutPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
-  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
+  // Ref (no state) a propósito: el auto-guardado de borrador (debounce al tipear) y el
+  // click en un botón de pago pueden disparar saveOrder() casi al mismo tiempo. Si el ID
+  // del borrador viviera solo en un useState, ambas llamadas podrían leerlo como "todavía
+  // null" (el estado no se actualiza al instante) y cada una crearía su propio pedido —
+  // esto es justo lo que generaba pedidos duplicados al coordinar por WhatsApp.
+  const draftOrderIdRef = useRef<string | null>(null);
+  const savingRef = useRef<Promise<any> | null>(null);
 
   const set = (k:string) => (e:any) => setForm(f => ({...f, [k]: e.target.value}));
 
@@ -57,18 +63,27 @@ export default function CheckoutPage() {
   };
 
   const saveOrder = async (completed = false) => {
+    // Si ya hay un guardado en curso (por ejemplo el auto-guardado disparó justo cuando
+    // se hizo click en pagar), se espera a que termine ese en vez de mandar un segundo
+    // insert en paralelo — así el segundo siempre ve el ID del borrador ya creado.
+    if (savingRef.current) await savingRef.current.catch(() => {});
+
     const payload = { ...buildOrder(), checkout_completed: completed };
     // Crear y actualizar el pedido va siempre por esta ruta de servidor — el navegador
     // anónimo no tiene permiso directo de leer de vuelta la fila que acaba de crear
     // (insert().select()) ni de editarla, así que un insert/update directo desde acá falla.
-    const res = await fetch('/api/checkout/draft', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: draftOrderId, order: payload }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'No se pudo guardar el pedido');
-    if (!draftOrderId) setDraftOrderId(data.id);
-    return data;
+    const promise = (async () => {
+      const res = await fetch('/api/checkout/draft', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: draftOrderIdRef.current, order: payload }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar el pedido');
+      if (!draftOrderIdRef.current) draftOrderIdRef.current = data.id;
+      return data;
+    })();
+    savingRef.current = promise;
+    try { return await promise; } finally { savingRef.current = null; }
   };
 
   // PAGAR CON MERCADOPAGO
