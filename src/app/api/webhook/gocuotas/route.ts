@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
     if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
       await notifyNewSale(existingOrder as any);
     }
-    if (newStatus === 'paid') await syncOrderToStockApp(supabase, order_reference_id);
+    if (newStatus === 'paid') {
+      try { await syncOrderToStockApp(supabase, order_reference_id); }
+      catch (syncErr: any) { console.error(`Webhook GoCuotas: fallo la sync de stock del pedido ${order_reference_id}: ${syncErr?.message || syncErr}`); }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
