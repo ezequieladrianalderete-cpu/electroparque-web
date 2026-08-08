@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
 
-export function OfferCountdown({ endsAt, compact = false, badge = false }: { endsAt: string; compact?: boolean; badge?: boolean }) {
+export function OfferCountdown({ endsAt, compact = false, badge = false, boxed = false }: { endsAt: string; compact?: boolean; badge?: boolean; boxed?: boolean }) {
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0, expired: false });
 
   useEffect(() => {
@@ -31,6 +31,22 @@ export function OfferCountdown({ endsAt, compact = false, badge = false }: { end
       <div className="absolute bottom-2 left-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-md shadow-sm flex items-center gap-1 tabular-nums leading-none">
         <Zap className="w-3 h-3 fill-white flex-shrink-0" />
         {time.d > 0 && `${time.d}d `}{String(time.h).padStart(2, '0')}:{String(time.m).padStart(2, '0')}:{String(time.s).padStart(2, '0')}
+      </div>
+    );
+  }
+
+  if (boxed) {
+    // Cada número en su propio recuadro oscuro, como el "Termina en 07 : 02 : 44" de
+    // la ficha de producto de Mercado Libre.
+    const digits = time.d > 0 ? [time.d, time.h, time.m, time.s] : [time.h, time.m, time.s];
+    return (
+      <div className="flex items-center gap-1">
+        {digits.map((val, i) => (
+          <span key={i} className="flex items-center gap-1">
+            {i > 0 && <span className="text-black/30 font-bold text-xs">:</span>}
+            <span className="bg-black/85 text-white text-xs font-bold px-1.5 py-1 rounded tabular-nums min-w-[1.6em] text-center">{String(val).padStart(2, '0')}</span>
+          </span>
+        ))}
       </div>
     );
   }

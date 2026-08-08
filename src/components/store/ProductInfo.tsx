@@ -62,17 +62,35 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border">
-        {activeOffer && (
-          <p className="text-ep-red text-xs font-bold uppercase tracking-wide mb-2">🏷️ {activeOffer.name}</p>
-        )}
-        <div className="flex flex-wrap items-end gap-3">
-          <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
-          {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
-          {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}% · Ahorrás {formatPrice(savings)}</span>}
+      {activeOffer ? (
+        <div className="rounded-xl overflow-hidden border border-amber-300 shadow-sm">
+          <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-1.5">⚡ {activeOffer.name}</span>
+            {activeOffer.ends_at && (
+              <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+                <span>Termina en</span>
+                <OfferCountdown endsAt={activeOffer.ends_at} boxed />
+              </div>
+            )}
+          </div>
+          <div className="bg-gradient-to-br from-amber-50 to-white p-5">
+            {referencePrice && <p className="text-gray-400 text-sm line-through mb-0.5">{formatPrice(referencePrice)}</p>}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-3xl font-extrabold text-gray-900">{formatPrice(finalPrice)}</span>
+              {discount > 0 && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-md">-{discount}% OFF</span>}
+            </div>
+            {savings > 0 && <p className="text-ep-red text-xs font-bold mt-1.5">Ahorrás {formatPrice(savings)}</p>}
+          </div>
         </div>
-        {activeOffer?.ends_at && <div className="mt-3"><OfferCountdown endsAt={activeOffer.ends_at} compact /></div>}
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border">
+          <div className="flex flex-wrap items-end gap-3">
+            <span className="text-3xl font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(finalPrice)}</span>
+            {referencePrice && <span className="text-lg text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
+            {discount > 0 && <span className="bg-gradient-to-r from-ep-red to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">-{discount}%</span>}
+          </div>
+        </div>
+      )}
 
       {product.variants && product.variants.length > 0 && (
         <div>
