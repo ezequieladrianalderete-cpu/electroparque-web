@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { Zap } from 'lucide-react';
 
-export function OfferCountdown({ endsAt, compact = false }: { endsAt: string; compact?: boolean }) {
+export function OfferCountdown({ endsAt, compact = false, badge = false }: { endsAt: string; compact?: boolean; badge?: boolean }) {
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0, expired: false });
 
   useEffect(() => {
@@ -22,6 +23,17 @@ export function OfferCountdown({ endsAt, compact = false }: { endsAt: string; co
   }, [endsAt]);
 
   if (time.expired) return null;
+
+  if (badge) {
+    // Estilo tipo "oferta relámpago" de Mercado Libre: chip amarillo sobre la foto,
+    // con horas:minutos:segundos en vez de las etiquetas "d/h/m/s".
+    return (
+      <div className="absolute bottom-2 left-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-md shadow-sm flex items-center gap-1 tabular-nums leading-none">
+        <Zap className="w-3 h-3 fill-white flex-shrink-0" />
+        {time.d > 0 && `${time.d}d `}{String(time.h).padStart(2, '0')}:{String(time.m).padStart(2, '0')}:{String(time.s).padStart(2, '0')}
+      </div>
+    );
+  }
 
   if (compact) {
     return (

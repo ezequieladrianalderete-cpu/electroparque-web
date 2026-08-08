@@ -51,6 +51,7 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
             <span className="text-5xl group-hover:scale-110 transition-transform">📦</span>
           )}
           {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
+          {activeOffer?.ends_at && <OfferCountdown endsAt={activeOffer.ends_at} badge />}
           <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
             {product.is_featured && <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
             <button
@@ -76,10 +77,7 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] hover:text-ep-navy transition-colors">{product.name}</h3>
         </Link>
         {activeOffer && (
-          <div className="mt-1 space-y-0.5">
-            <p className="text-[10px] text-ep-red font-bold uppercase tracking-wide truncate">🏷️ {activeOffer.name}</p>
-            {activeOffer.ends_at && <OfferCountdown endsAt={activeOffer.ends_at} compact />}
-          </div>
+          <p className="text-[10px] text-ep-red font-bold uppercase tracking-wide truncate mt-1">🏷️ {activeOffer.name}</p>
         )}
         <div className="flex items-center gap-2 mt-2 mb-3">
           <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(effectivePrice)}</span>
