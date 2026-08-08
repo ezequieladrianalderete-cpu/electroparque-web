@@ -35,20 +35,31 @@ export async function POST(req: NextRequest) {
 
     const price = Number(body?.price) || 0;
     const sku = body?.sku ? String(body.sku) : null;
+    const imagen = body?.imagen ? String(body.imagen) : null;
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
+    // Si todavía no tiene ninguna foto cargada en la web, le sumamos la que ya tiene
+    // en stock-app (el bucket de fotos de stock-app es público, así que la URL sirve
+    // tal cual). Si marketing ya le subió fotos propias, no las tocamos.
+    async function agregarFotoSiFalta(productId: string) {
+      if (!imagen) return;
+      const { count } = await supabase.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
+      if (!count) await supabase.from('product_images').insert({ product_id: productId, url: imagen, is_primary: true, sort_order: 0 });
+    }
+
     // Ya publicado antes (vinculado por stock_app_id) -> actualiza nombre/precio/sku,
-    // sin tocar is_active, imágenes ni descripción (eso lo maneja marketing en la web).
+    // sin tocar is_active ni descripción (eso lo maneja marketing en la web).
     const { data: existing } = await supabase.from('products').select('id').eq('stock_app_id', stockAppId).maybeSingle();
     if (existing) {
       const { error } = await supabase.from('products').update({ name, price, sku }).eq('id', existing.id);
       if (error) return json({ error: error.message }, 500);
+      await agregarFotoSiFalta(existing.id);
       return json({ id: existing.id, created: false });
     }
 
     // Primera publicación: se crea inactiva (borrador) para que marketing la revise,
-    // le sume fotos/descripción y recién ahí la active.
+    // le sume descripción y recién ahí la active.
     const slugBase = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const slug = `${slugBase || 'producto'}-${stockAppId}`;
 
@@ -56,6 +67,7 @@ export async function POST(req: NextRequest) {
       .insert({ name, slug, price, sku, is_active: false, stock_app_id: stockAppId })
       .select('id').single();
     if (error) return json({ error: error.message }, 500);
+    await agregarFotoSiFalta(data.id);
     return json({ id: data.id, created: true });
   } catch (err: any) {
     return json({ error: 'Error interno: ' + (err.message || 'desconocido') }, 500);
