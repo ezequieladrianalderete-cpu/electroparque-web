@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
 
   // 1) Variables de entorno críticas
   ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
-    'MERCADOPAGO_ACCESS_TOKEN', 'GOCUOTAS_EMAIL', 'GOCUOTAS_API_KEY'].forEach(k => checks.push(envCheck(k)));
+    'MERCADOPAGO_ACCESS_TOKEN', 'GOCUOTAS_EMAIL', 'GOCUOTAS_API_KEY',
+    'RESEND_API_KEY', 'STOCK_APP_SECRET'].forEach(k => checks.push(envCheck(k)));
 
   // 2) Conexión a la base
   try {
@@ -90,7 +91,30 @@ export async function GET(req: NextRequest) {
     checks.push({ name: 'GoCuotas (autenticación de sucursal)', ok: false, detail: e.message });
   }
 
-  // 8) El catálogo para Meta responde y trae productos
+  // 8) Aviso por email de nueva venta: hay a quién avisarle
+  try {
+    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const { data } = await admin.from('store_settings').select('value').eq('key', 'order_notification_emails').single();
+    const hasEmails = !!data?.value?.trim();
+    checks.push({ name: 'Aviso de venta por email — destinatarios cargados', ok: hasEmails, detail: hasEmails ? data!.value : 'no hay ningún email cargado en Configuración' });
+  } catch (e: any) {
+    checks.push({ name: 'Aviso de venta por email — destinatarios cargados', ok: false, detail: e.message });
+  }
+
+  // 9) Endpoint de stock-app: rechaza correctamente un secreto incorrecto (no podemos
+  // probar el secreto real desde acá sin conocerlo, pero sí confirmar que el gate anda)
+  try {
+    const res = await fetch(`${baseUrl}/api/stock-app/publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-stock-app-secret': '__wrong__' },
+      body: JSON.stringify({ stock_app_id: 0, name: 'healthcheck' }),
+    });
+    checks.push({ name: 'Endpoint de stock-app (rechaza secretos incorrectos)', ok: res.status === 401, detail: res.status === 401 ? 'protegido correctamente' : `esperaba HTTP 401, llegó ${res.status}` });
+  } catch (e: any) {
+    checks.push({ name: 'Endpoint de stock-app (rechaza secretos incorrectos)', ok: false, detail: e.message });
+  }
+
+  // 10) El catálogo para Meta responde y trae productos
   try {
     const res = await fetch(`${baseUrl}/api/feed/facebook`, { cache: 'no-store' });
     const text = await res.text();
@@ -100,7 +124,7 @@ export async function GET(req: NextRequest) {
     checks.push({ name: 'Catálogo de Meta (feed de productos)', ok: false, detail: e.message });
   }
 
-  // 9) Páginas clave del sitio responden
+  // 11) Páginas clave del sitio responden
   const pages = ['/', '/productos', '/checkout', '/favoritos'];
   for (const path of pages) {
     try {

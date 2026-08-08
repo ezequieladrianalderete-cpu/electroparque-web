@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { 'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` },
       });
+
+      // Si esta consulta falla (pasa, sobre todo si MP avisa antes de que el pago esté
+      // indexado del todo), antes seguíamos de largo en silencio y le decíamos "ok" a MP
+      // — así el pedido se quedaba en "pendiente" para siempre porque MP nunca reintentaba.
+      // Devolviendo un error acá, MP reintenta solo con backoff.
+      if (!mpRes.ok) {
+        console.error(`Webhook MP: no se pudo consultar el pago ${paymentId} (HTTP ${mpRes.status})`);
+        return NextResponse.json({ error: 'No se pudo consultar el pago, reintentar' }, { status: 502 });
+      }
       const payment = await mpRes.json();
 
       if (payment.external_reference) {
@@ -35,11 +44,16 @@ export async function POST(req: NextRequest) {
           .select('status,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
           .eq('id', payment.external_reference).single();
 
-        await supabase.from('orders').update({
+        const { error: updateError } = await supabase.from('orders').update({
           status: newStatus,
           payment_id: String(paymentId),
           updated_at: new Date().toISOString(),
         }).eq('id', payment.external_reference);
+
+        if (updateError) {
+          console.error(`Webhook MP: no se pudo actualizar el pedido ${payment.external_reference}: ${updateError.message}`);
+          return NextResponse.json({ error: 'No se pudo actualizar el pedido, reintentar' }, { status: 502 });
+        }
 
         if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
           await notifyNewSale(existingOrder as any);
@@ -48,8 +62,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    // Siempre devolver 200 para que MP no reintente infinitamente
+  } catch (err: any) {
+    console.error('Webhook MP: error inesperado:', err?.message || err);
+    // Un error inesperado de nuestro código no se arregla solo con un reintento de MP
+    // (volvería a fallar igual) — devolvemos 200 para no generar una tormenta de reintentos.
     return NextResponse.json({ ok: true });
   }
 }
