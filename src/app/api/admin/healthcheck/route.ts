@@ -91,14 +91,33 @@ export async function GET(req: NextRequest) {
     checks.push({ name: 'GoCuotas (autenticación de sucursal)', ok: false, detail: e.message });
   }
 
-  // 8) Aviso por email de nueva venta: hay a quién avisarle
+  // 8) Aviso por email de nueva venta: hay a quién avisarle Y Resend lo manda de verdad
+  // (no solo "está la clave cargada" — se prueba el envío real, porque un typo al pegar
+  // la clave en Vercel pasaría desapercibido si solo miráramos que no esté vacía).
   try {
     const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { data } = await admin.from('store_settings').select('value').eq('key', 'order_notification_emails').single();
-    const hasEmails = !!data?.value?.trim();
-    checks.push({ name: 'Aviso de venta por email — destinatarios cargados', ok: hasEmails, detail: hasEmails ? data!.value : 'no hay ningún email cargado en Configuración' });
+    const emails = (data?.value || '').split(',').map((e: string) => e.trim()).filter(Boolean);
+    if (emails.length === 0) {
+      checks.push({ name: 'Aviso de venta por email', ok: false, detail: 'no hay ningún email cargado en Configuración' });
+    } else if (!process.env.RESEND_API_KEY) {
+      checks.push({ name: 'Aviso de venta por email', ok: false, detail: 'falta RESEND_API_KEY' });
+    } else {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL || 'Electro Parque <onboarding@resend.dev>',
+          to: emails,
+          subject: '✅ Chequeo de salud — Electro Parque',
+          html: '<p>Si ves esto, el aviso de nuevas ventas por email está funcionando.</p>',
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      checks.push({ name: 'Aviso de venta por email (envío real de prueba)', ok: res.ok, detail: res.ok ? `enviado a ${emails.join(', ')} (id ${body.id})` : `Resend HTTP ${res.status}: ${body.message || JSON.stringify(body)}` });
+    }
   } catch (e: any) {
-    checks.push({ name: 'Aviso de venta por email — destinatarios cargados', ok: false, detail: e.message });
+    checks.push({ name: 'Aviso de venta por email', ok: false, detail: e.message });
   }
 
   // 9) Endpoint de stock-app: rechaza correctamente un secreto incorrecto (no podemos
