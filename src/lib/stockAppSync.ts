@@ -20,6 +20,21 @@ function stockDb() {
   return _stockDb;
 }
 
+// Apps Script que respalda la planilla de Google Sheets — esa planilla es lo que
+// alimenta la sincronización de stock con Mercado Libre (no se toca acá). Cuando
+// stock-app descuenta stock desde el navegador (venta de mostrador, venta ML, etc.)
+// también le avisa a este mismo endpoint para que la planilla quede al día; una venta
+// de la web tiene que avisar igual, si no la planilla se queda con un número viejo y
+// Mercado Libre puede seguir vendiendo algo que ya no hay. Fire-and-forget: si esto
+// falla, no debe frenar ni deshacer el descuento real ya confirmado en Supabase.
+const SHEET_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxrz4MOxub5tdfiQ09gbLi0b-GXwimlfRfVyOCsRS9Ap9G3GbCkTUoYpvMrRrGs6w4/exec';
+function notifySheet(sku: string, nuevaCantidad: number, nuevoEstado: string) {
+  // (No hace falta mode:'no-cors' acá: eso es una restricción del navegador, esto corre
+  // server-side donde no aplica CORS entre servidores.)
+  const params = new URLSearchParams({ accion: 'actualizarStock', sku, nuevaCantidad: String(nuevaCantidad), nuevoEstado });
+  fetch(`${SHEET_SYNC_URL}?${params}`).catch(() => {});
+}
+
 // Cuando un pedido de la tienda se paga, descuenta el stock real en stock-app y
 // registra la venta (canal 'web') para que aparezca en Facturación — mismo mecanismo
 // que usan las ventas de MercadoLibre/mostrador. orderId siempre pasa por acá con la
@@ -61,7 +76,9 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
 
     const anterior = prod.cantidades || 0;
     const nuevo = Math.max(0, anterior - qty);
-    await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevo > 0 ? 'STOCK' : 'SIN STOCK' }).eq('id', stockAppId);
+    const nuevoEstado = nuevo > 0 ? 'STOCK' : 'SIN STOCK';
+    await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevoEstado }).eq('id', stockAppId);
+    if (prod.sku) notifySheet(prod.sku, nuevo, nuevoEstado);
     await stockDb().from('movimientos').insert({
       fecha, hora, usuario: 'Tienda Web', articulo: item.name || prod.articulo,
       sku: prod.sku, tipo: 'venta', cantidad: qty, stock_anterior: anterior, stock_nuevo: nuevo,
