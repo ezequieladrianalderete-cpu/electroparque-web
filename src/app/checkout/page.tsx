@@ -62,13 +62,13 @@ export default function CheckoutPage() {
     };
   };
 
-  const saveOrder = async (completed = false) => {
+  const saveOrder = async (completed = false, paymentMethod: string | null = null) => {
     // Si ya hay un guardado en curso (por ejemplo el auto-guardado disparó justo cuando
     // se hizo click en pagar), se espera a que termine ese en vez de mandar un segundo
     // insert en paralelo — así el segundo siempre ve el ID del borrador ya creado.
     if (savingRef.current) await savingRef.current.catch(() => {});
 
-    const payload = { ...buildOrder(), checkout_completed: completed };
+    const payload = { ...buildOrder(), checkout_completed: completed, payment_method: paymentMethod };
     // Crear y actualizar el pedido va siempre por esta ruta de servidor — el navegador
     // anónimo no tiene permiso directo de leer de vuelta la fila que acaba de crear
     // (insert().select()) ni de editarla, así que un insert/update directo desde acá falla.
@@ -91,7 +91,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'mercadopago');
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,7 +117,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'gocuotas');
       const res = await fetch('/api/checkout/gocuotas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -144,7 +144,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'whatsapp');
       const itemLines = items.map(i => {
         let line = `• ${i.product.name}`;
         if (i.variant) line += ` (${i.variant.name}: ${i.variant.value})`;
