@@ -19,6 +19,12 @@ const STATUSES = [
 // coordinado por WhatsApp (el dueño ya tiene el contacto directo por chat, no es una
 // venta "perdida") — un intento de MercadoPago/GoCuotas que nunca terminó de pagar SÍ
 // cuenta como abandonado, aunque haya llegado a tocar el botón (checkout_completed=true).
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  mercadopago: '💳 MercadoPago',
+  gocuotas: '💳 GoCuotas',
+  whatsapp: '💬 Coordinado por WhatsApp',
+};
+
 const ABANDON_AFTER_MIN = 20;
 function isAbandoned(o: any) {
   if (o.status === 'cancelled') return true;
@@ -157,7 +163,7 @@ export default function PedidosPage() {
                         )}
                       </div>
                       <p className="text-sm font-medium">{o.customer_name || <span className="text-gray-400 italic">Sin nombre</span>}</p>
-                      <p className="text-xs text-gray-400">{o.customer_phone || o.customer_email || '—'} · {new Date(o.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                      <p className="text-xs text-gray-400">{o.customer_phone || o.customer_email || '—'} · {new Date(o.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}{o.payment_method && ` · ${PAYMENT_METHOD_LABELS[o.payment_method] || o.payment_method}`}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="font-extrabold text-ep-navy">${Number(o.total).toLocaleString('es-AR')}</p>
@@ -189,6 +195,8 @@ export default function PedidosPage() {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div><p className="text-xs text-gray-400">Email</p><p className="font-medium">{o.customer_email || '—'}</p></div>
                         <div><p className="text-xs text-gray-400">DNI/CUIT</p><p className="font-medium">{o.customer_dni || '—'}</p></div>
+                        <div><p className="text-xs text-gray-400">Medio de pago</p><p className="font-medium">{o.payment_method ? (PAYMENT_METHOD_LABELS[o.payment_method] || o.payment_method) : '—'}</p></div>
+                        {o.payment_id && <div><p className="text-xs text-gray-400">ID de pago</p><p className="font-medium font-mono text-xs">{o.payment_id}</p></div>}
                         <div className="col-span-2"><p className="text-xs text-gray-400">Dirección</p><p className="font-medium">{o.shipping_address?.address || '—'}, {o.shipping_address?.city || ''} {o.shipping_address?.province || ''} {o.shipping_address?.zip || ''}</p></div>
                         {o.notes && <div className="col-span-2"><p className="text-xs text-gray-400">Notas</p><p className="font-medium">{o.notes}</p></div>}
                       </div>
