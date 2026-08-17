@@ -12,6 +12,15 @@ export default function CheckoutPage() {
   const { items, total, clearCart } = useCart();
   const settings = useStoreSettings();
   const [saving, setSaving] = useState(false);
+  // El carrito se guarda en localStorage y recién se lee en el cliente, después del
+  // primer render — el servidor siempre lo ve vacío. Si alguien vuelve más tarde con
+  // productos ya guardados de una visita anterior (típico al reabrir un link de
+  // WhatsApp), esta página mostraba "carrito vacío" por una fracción de segundo antes
+  // de corregirse sola, con un botón grande de "Ver productos" justo donde cae el
+  // dedo — suficiente para sacar a alguien del checkout sin que quede ni rastro de
+  // que lo intentó. Se espera a que termine de leerse el carrito real antes de decidir
+  // si está vacío.
+  const [cartHydrated, setCartHydrated] = useState(useCart.persist.hasHydrated());
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
   // Ref (no state) a propósito: el auto-guardado de borrador (debounce al tipear) y el
@@ -24,7 +33,16 @@ export default function CheckoutPage() {
 
   const set = (k:string) => (e:any) => setForm(f => ({...f, [k]: e.target.value}));
 
-  useEffect(() => { if (items.length > 0) { trackBeginCheckout(items, total()); logEvent('begin_checkout'); } }, []);
+  useEffect(() => {
+    if (cartHydrated) return;
+    if (useCart.persist.hasHydrated()) { setCartHydrated(true); return; }
+    return useCart.persist.onFinishHydration(() => setCartHydrated(true));
+  }, [cartHydrated]);
+
+  // Ligado a cartHydrated (no solo a items.length) para no perder el evento en quienes
+  // llegan con un carrito ya guardado: items pasa de [] a los productos reales recién
+  // cuando termina de hidratarse, y ese cambio también debe contar como "empezó el checkout".
+  useEffect(() => { if (cartHydrated && items.length > 0) { trackBeginCheckout(items, total()); logEvent('begin_checkout'); } }, [cartHydrated]);
 
   // Guarda el pedido como borrador a medida que la persona completa sus datos, aunque
   // nunca llegue a tocar un botón de pago — así queda como "carrito abandonado" con sus
@@ -35,6 +53,11 @@ export default function CheckoutPage() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, items.length]);
+
+  // Mientras el carrito todavía no terminó de leerse de localStorage no se sabe de
+  // verdad si está vacío — no mostrar el mensaje de "vacío" en ese instante evita
+  // sacar de carrera a alguien que sí tiene productos guardados de antes.
+  if (!cartHydrated) return null;
 
   if (items.length === 0) return (
     <div className="max-w-md mx-auto px-4 py-20 text-center">
