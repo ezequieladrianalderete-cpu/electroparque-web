@@ -20,7 +20,11 @@ export default function CheckoutPage() {
   // dedo — suficiente para sacar a alguien del checkout sin que quede ni rastro de
   // que lo intentó. Se espera a que termine de leerse el carrito real antes de decidir
   // si está vacío.
-  const [cartHydrated, setCartHydrated] = useState(useCart.persist.hasHydrated());
+  // (persist?. por las dudas: en algún entorno de render en servidor esta API viene
+  // undefined — sin la guarda, tira abajo la página entera con un 500 para todo el
+  // mundo, mucho peor que el flash de "carrito vacío" que se quiere evitar. Si no
+  // está disponible, se asume hidratado ya (mismo comportamiento que antes de este fix).
+  const [cartHydrated, setCartHydrated] = useState(() => useCart.persist?.hasHydrated?.() ?? true);
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
   // Ref (no state) a propósito: el auto-guardado de borrador (debounce al tipear) y el
@@ -34,7 +38,7 @@ export default function CheckoutPage() {
   const set = (k:string) => (e:any) => setForm(f => ({...f, [k]: e.target.value}));
 
   useEffect(() => {
-    if (cartHydrated) return;
+    if (cartHydrated || !useCart.persist) return;
     if (useCart.persist.hasHydrated()) { setCartHydrated(true); return; }
     return useCart.persist.onFinishHydration(() => setCartHydrated(true));
   }, [cartHydrated]);
