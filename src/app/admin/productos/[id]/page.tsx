@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Video, HelpCircle } from 'lucide-react';
+import { Upload, X, Plus, Trash2, ArrowLeft, Save, Film, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Video, HelpCircle, Pencil, Check } from 'lucide-react';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,6 +22,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [blockImageFile, setBlockImageFile] = useState<File | null>(null);
   const [blockVideoFile, setBlockVideoFile] = useState<File | null>(null);
   const [blockSaving, setBlockSaving] = useState(false);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [editBlockForm, setEditBlockForm] = useState({ title: '', description: '' });
+  const [editBlockImageFile, setEditBlockImageFile] = useState<File | null>(null);
+  const [editBlockVideoFile, setEditBlockVideoFile] = useState<File | null>(null);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [faqForm, setFaqForm] = useState({ question: '', answer: '' });
   const [faqSaving, setFaqSaving] = useState(false);
@@ -90,6 +94,29 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   };
 
   const removeBlock = async (blockId: string) => { if (confirm('¿Eliminar este bloque?')) { await supabase.from('product_content_blocks').delete().eq('id', blockId); await load(); } };
+  const startEditBlock = (b: any) => {
+    setEditingBlockId(b.id);
+    setEditBlockForm({ title: b.title || '', description: b.description || '' });
+    setEditBlockImageFile(null); setEditBlockVideoFile(null);
+  };
+  const cancelEditBlock = () => { setEditingBlockId(null); setEditBlockImageFile(null); setEditBlockVideoFile(null); };
+  const saveEditBlock = async (blockId: string) => {
+    setBlockSaving(true);
+    const updates: any = { title: editBlockForm.title || null, description: editBlockForm.description || null };
+    if (editBlockImageFile) {
+      const path = `blocks/${id}-${Date.now()}.${editBlockImageFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('products').upload(path, editBlockImageFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path); updates.image_url = publicUrl; }
+    }
+    if (editBlockVideoFile) {
+      const path = `blocks/${id}-${Date.now()}-video.${editBlockVideoFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('products').upload(path, editBlockVideoFile);
+      if (!error) { const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(path); updates.video_url = publicUrl; }
+    }
+    await supabase.from('product_content_blocks').update(updates).eq('id', blockId);
+    setEditingBlockId(null); setEditBlockImageFile(null); setEditBlockVideoFile(null);
+    await load(); setBlockSaving(false);
+  };
   const toggleBlock = async (blockId: string, active: boolean) => { await supabase.from('product_content_blocks').update({ is_active: !active }).eq('id', blockId); await load(); };
   const moveBlock = async (index: number, direction: -1 | 1) => {
     const newIndex = index + direction;
@@ -254,7 +281,26 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            {blocks.map((b, i) => (
+            {blocks.map((b, i) => editingBlockId === b.id ? (
+              <div key={b.id} className="border-2 border-ep-navy rounded-xl p-4 space-y-2">
+                <input value={editBlockForm.title} onChange={e => setEditBlockForm(f => ({...f, title: e.target.value}))} className="input-field text-sm" placeholder="Título"/>
+                <textarea value={editBlockForm.description} onChange={e => setEditBlockForm(f => ({...f, description: e.target.value}))} className="input-field text-sm resize-none" rows={2} placeholder="Texto explicativo"/>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="flex-1 min-w-[140px] border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                    <Upload className="w-4 h-4 text-gray-400"/>{editBlockImageFile ? editBlockImageFile.name : (b.image_url ? 'Reemplazar imagen' : 'Imagen')}
+                    <input type="file" accept="image/*" onChange={e => { const f=e.target.files?.[0]; if(f) setEditBlockImageFile(f); }} className="hidden"/>
+                  </label>
+                  <label className="flex-1 min-w-[140px] border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-ep-navy text-xs text-gray-500">
+                    <Video className="w-4 h-4 text-gray-400"/>{editBlockVideoFile ? editBlockVideoFile.name : (b.video_url ? 'Reemplazar video' : 'Video (opcional)')}
+                    <input type="file" accept="video/*" onChange={e => { const f=e.target.files?.[0]; if(f) setEditBlockVideoFile(f); }} className="hidden"/>
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => saveEditBlock(b.id)} disabled={blockSaving} className="bg-ep-navy text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50"><Check className="w-3 h-3 inline mr-1"/>Guardar</button>
+                  <button onClick={cancelEditBlock} disabled={blockSaving} className="border font-bold px-4 py-2 rounded-lg text-xs text-gray-500">Cancelar</button>
+                </div>
+              </div>
+            ) : (
               <div key={b.id} className="flex items-center gap-3 border rounded-xl p-3">
                 <div className="flex flex-col gap-0.5">
                   <button onClick={() => moveBlock(i, -1)} disabled={i===0} className="p-0.5 rounded border text-gray-500 hover:bg-gray-50 disabled:opacity-30"><ChevronUp className="w-3 h-3"/></button>
@@ -268,6 +314,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <p className="text-[11px] text-gray-400 truncate">{b.description}</p>
                 </div>
                 <button onClick={() => toggleBlock(b.id, b.is_active)} className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{b.is_active ? 'Activo' : 'Oculto'}</button>
+                <button onClick={() => startEditBlock(b)} className="text-gray-400 hover:text-ep-navy flex-shrink-0"><Pencil className="w-4 h-4"/></button>
                 <button onClick={() => removeBlock(b.id)} className="text-red-400 hover:text-red-600 flex-shrink-0"><Trash2 className="w-4 h-4"/></button>
               </div>
             ))}
