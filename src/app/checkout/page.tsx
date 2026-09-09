@@ -12,6 +12,19 @@ export default function CheckoutPage() {
   const { items, total, clearCart } = useCart();
   const settings = useStoreSettings();
   const [saving, setSaving] = useState(false);
+  // El carrito se guarda en localStorage y recién se lee en el cliente, después del
+  // primer render — el servidor siempre lo ve vacío. Si alguien vuelve más tarde con
+  // productos ya guardados de una visita anterior (típico al reabrir un link de
+  // WhatsApp), esta página mostraba "carrito vacío" por una fracción de segundo antes
+  // de corregirse sola, con un botón grande de "Ver productos" justo donde cae el
+  // dedo — suficiente para sacar a alguien del checkout sin que quede ni rastro de
+  // que lo intentó. Se espera a que termine de leerse el carrito real antes de decidir
+  // si está vacío.
+  // (persist?. por las dudas: en algún entorno de render en servidor esta API viene
+  // undefined — sin la guarda, tira abajo la página entera con un 500 para todo el
+  // mundo, mucho peor que el flash de "carrito vacío" que se quiere evitar. Si no
+  // está disponible, se asume hidratado ya (mismo comportamiento que antes de este fix).
+  const [cartHydrated, setCartHydrated] = useState(() => useCart.persist?.hasHydrated?.() ?? true);
   const [form, setForm] = useState({ name:'', email:'', phone:'', dni:'', address:'', city:'', province:'', zip:'', notes:'' });
   const [error, setError] = useState('');
   // Ref (no state) a propósito: el auto-guardado de borrador (debounce al tipear) y el
@@ -24,7 +37,16 @@ export default function CheckoutPage() {
 
   const set = (k:string) => (e:any) => setForm(f => ({...f, [k]: e.target.value}));
 
-  useEffect(() => { if (items.length > 0) { trackBeginCheckout(items, total()); logEvent('begin_checkout'); } }, []);
+  useEffect(() => {
+    if (cartHydrated || !useCart.persist) return;
+    if (useCart.persist.hasHydrated()) { setCartHydrated(true); return; }
+    return useCart.persist.onFinishHydration(() => setCartHydrated(true));
+  }, [cartHydrated]);
+
+  // Ligado a cartHydrated (no solo a items.length) para no perder el evento en quienes
+  // llegan con un carrito ya guardado: items pasa de [] a los productos reales recién
+  // cuando termina de hidratarse, y ese cambio también debe contar como "empezó el checkout".
+  useEffect(() => { if (cartHydrated && items.length > 0) { trackBeginCheckout(items, total()); logEvent('begin_checkout'); } }, [cartHydrated]);
 
   // Guarda el pedido como borrador a medida que la persona completa sus datos, aunque
   // nunca llegue a tocar un botón de pago — así queda como "carrito abandonado" con sus
@@ -35,6 +57,11 @@ export default function CheckoutPage() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, items.length]);
+
+  // Mientras el carrito todavía no terminó de leerse de localStorage no se sabe de
+  // verdad si está vacío — no mostrar el mensaje de "vacío" en ese instante evita
+  // sacar de carrera a alguien que sí tiene productos guardados de antes.
+  if (!cartHydrated) return null;
 
   if (items.length === 0) return (
     <div className="max-w-md mx-auto px-4 py-20 text-center">
@@ -62,13 +89,13 @@ export default function CheckoutPage() {
     };
   };
 
-  const saveOrder = async (completed = false) => {
+  const saveOrder = async (completed = false, paymentMethod: string | null = null) => {
     // Si ya hay un guardado en curso (por ejemplo el auto-guardado disparó justo cuando
     // se hizo click en pagar), se espera a que termine ese en vez de mandar un segundo
     // insert en paralelo — así el segundo siempre ve el ID del borrador ya creado.
     if (savingRef.current) await savingRef.current.catch(() => {});
 
-    const payload = { ...buildOrder(), checkout_completed: completed };
+    const payload = { ...buildOrder(), checkout_completed: completed, payment_method: paymentMethod };
     // Crear y actualizar el pedido va siempre por esta ruta de servidor — el navegador
     // anónimo no tiene permiso directo de leer de vuelta la fila que acaba de crear
     // (insert().select()) ni de editarla, así que un insert/update directo desde acá falla.
@@ -91,7 +118,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'mercadopago');
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,7 +144,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'gocuotas');
       const res = await fetch('/api/checkout/gocuotas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -144,7 +171,7 @@ export default function CheckoutPage() {
     if (!form.name || !form.phone || !form.email || !form.dni) { setError('Nombre, teléfono, email y DNI/CUIT son obligatorios'); return; }
     setSaving(true); setError('');
     try {
-      const order = await saveOrder(true);
+      const order = await saveOrder(true, 'whatsapp');
       const itemLines = items.map(i => {
         let line = `• ${i.product.name}`;
         if (i.variant) line += ` (${i.variant.name}: ${i.variant.value})`;
