@@ -68,11 +68,17 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
 
   for (const item of items) {
     const stockAppId = stockAppIdByProduct[item.product_id];
-    if (!stockAppId) continue;
+    if (!stockAppId) {
+      console.error(`syncOrderToStockApp: pedido ${orderId} — producto ${item.product_id} (${item.name || 'sin nombre'}) no tiene stock_app_id, no se descontó stock`);
+      continue;
+    }
     const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
 
     const { data: prod } = await stockDb().from('stock').select('id,sku,articulo,cantidades').eq('id', stockAppId).maybeSingle();
-    if (!prod) continue;
+    if (!prod) {
+      console.error(`syncOrderToStockApp: pedido ${orderId} — stock_app_id ${stockAppId} (producto ${item.product_id}) no existe en stock-app, no se descontó stock`);
+      continue;
+    }
 
     const anterior = prod.cantidades || 0;
     const nuevo = Math.max(0, anterior - qty);
