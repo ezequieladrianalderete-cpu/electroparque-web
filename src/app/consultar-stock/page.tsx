@@ -4,6 +4,27 @@ import { PackageSearch, Send } from 'lucide-react';
 
 type Msg = { role: 'user' | 'bot'; texto: string };
 
+// El bot devuelve texto plano (sin markdown), pero a veces incluye una URL de
+// Mercado Libre — esto la convierte en link cliqueable en vez de texto suelto.
+function renderConLinks(texto: string) {
+  const partes = texto.split(/(https?:\/\/\S+)/g);
+  return partes.map((parte, i) =>
+    /^https?:\/\//.test(parte) ? (
+      <a
+        key={i}
+        href={parte}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all text-ep-red font-medium"
+      >
+        {parte}
+      </a>
+    ) : (
+      <span key={i}>{parte}</span>
+    )
+  );
+}
+
 const STOCK_API_URL = 'https://db.electroparque.com/functions/v1/ask-stock-public';
 const STOCK_API_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -60,7 +81,7 @@ export default function ConsultarStockPage() {
                   m.role === 'bot' ? 'bg-gray-100 text-gray-800' : 'bg-ep-navy text-white'
                 }`}
               >
-                {m.texto}
+                {renderConLinks(m.texto)}
               </div>
             </div>
           ))}
