@@ -68,27 +68,49 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
 
   for (const item of items) {
     const stockAppId = stockAppIdByProduct[item.product_id];
+    const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
+    let prod: any = null;
+
     if (!stockAppId) {
       console.error(`syncOrderToStockApp: pedido ${orderId} — producto ${item.product_id} (${item.name || 'sin nombre'}) no tiene stock_app_id, no se descontó stock`);
-      continue;
+    } else {
+      const { data: p } = await stockDb().from('stock').select('id,sku,articulo,cantidades,caja,estanteria,observaciones').eq('id', stockAppId).maybeSingle();
+      if (!p) {
+        console.error(`syncOrderToStockApp: pedido ${orderId} — stock_app_id ${stockAppId} (producto ${item.product_id}) no existe en stock-app, no se descontó stock`);
+      } else {
+        prod = p;
+        const anterior = prod.cantidades || 0;
+        const nuevo = Math.max(0, anterior - qty);
+        const nuevoEstado = nuevo > 0 ? 'STOCK' : 'SIN STOCK';
+        await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevoEstado }).eq('id', stockAppId);
+        if (prod.sku) notifySheet(prod.sku, nuevo, nuevoEstado);
+        await stockDb().from('movimientos').insert({
+          fecha, hora, usuario: 'Tienda Web', articulo: item.name || prod.articulo,
+          sku: prod.sku, tipo: 'venta', cantidad: qty, stock_anterior: anterior, stock_nuevo: nuevo,
+          canal: 'web', monto: Number(item.subtotal) || 0,
+        });
+      }
     }
-    const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
 
-    const { data: prod } = await stockDb().from('stock').select('id,sku,articulo,cantidades').eq('id', stockAppId).maybeSingle();
-    if (!prod) {
-      console.error(`syncOrderToStockApp: pedido ${orderId} — stock_app_id ${stockAppId} (producto ${item.product_id}) no existe en stock-app, no se descontó stock`);
-      continue;
-    }
-
-    const anterior = prod.cantidades || 0;
-    const nuevo = Math.max(0, anterior - qty);
-    const nuevoEstado = nuevo > 0 ? 'STOCK' : 'SIN STOCK';
-    await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevoEstado }).eq('id', stockAppId);
-    if (prod.sku) notifySheet(prod.sku, nuevo, nuevoEstado);
-    await stockDb().from('movimientos').insert({
-      fecha, hora, usuario: 'Tienda Web', articulo: item.name || prod.articulo,
-      sku: prod.sku, tipo: 'venta', cantidad: qty, stock_anterior: anterior, stock_nuevo: nuevo,
-      canal: 'web', monto: Number(item.subtotal) || 0,
+    // Aparece en la Lista de retiro de stock-app para que lo preparen, se haya
+    // podido descontar stock o no — el objetivo acá es que el pedido no se
+    // pierda de vista, no solo llevar el conteo de inventario. web_order_id
+    // conecta cada fila con el pedido real para poder marcarlo "Preparando"
+    // cuando estén todos sus productos tildados (ver toggleRetirado en stock-app).
+    const ubicacion = prod ? [prod.caja, prod.estanteria].filter(Boolean).join(' · ') : null;
+    await stockDb().from('lista_retiro').insert({
+      mla: null,
+      articulo: item.name || prod?.articulo || 'Producto sin nombre',
+      sku: prod?.sku || null,
+      cantidad: qty,
+      stock_id: prod?.id || null,
+      cuenta_numero: 'web',
+      cuenta_nombre: 'Tienda Web',
+      usuario: 'Auto (Web)',
+      orden: String(claimed.order_number ?? orderId),
+      observaciones: prod?.observaciones || null,
+      ubicacion: ubicacion || null,
+      web_order_id: orderId,
     });
   }
 }
