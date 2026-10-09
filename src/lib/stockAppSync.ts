@@ -15,7 +15,12 @@ function stockDb() {
     if (!process.env.STOCK_APP_SUPABASE_URL || !process.env.STOCK_APP_SUPABASE_ANON_KEY) {
       throw new Error('Falta STOCK_APP_SUPABASE_URL y/o STOCK_APP_SUPABASE_ANON_KEY');
     }
-    _stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY);
+    // STOCK_APP_TOKEN es un pase propio de la tienda (rol 'tienda' en stock-app): solo puede ver
+    // el stock, descontarlo y anotar la venta y el pedido. La llave pública sigue yendo como
+    // apikey (la pide la puerta de entrada del servidor), pero los permisos salen del pase.
+    const token = process.env.STOCK_APP_TOKEN;
+    _stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY,
+      token ? { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } } : undefined);
   }
   return _stockDb;
 }
@@ -32,6 +37,8 @@ function notifySheet(sku: string, nuevaCantidad: number, nuevoEstado: string) {
   // (No hace falta mode:'no-cors' acá: eso es una restricción del navegador, esto corre
   // server-side donde no aplica CORS entre servidores.)
   const params = new URLSearchParams({ accion: 'actualizarStock', sku, nuevaCantidad: String(nuevaCantidad), nuevoEstado });
+  // La planilla pide una clave para aceptar cambios (HOJA_CLAVE en Vercel).
+  if (process.env.HOJA_CLAVE) params.set('clave', process.env.HOJA_CLAVE);
   fetch(`${SHEET_SYNC_URL}?${params}`).catch(() => {});
 }
 

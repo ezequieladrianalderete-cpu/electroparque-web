@@ -139,7 +139,8 @@ export async function GET(req: NextRequest) {
     if (!process.env.STOCK_APP_SUPABASE_URL || !process.env.STOCK_APP_SUPABASE_ANON_KEY) {
       checks.push({ name: 'Conexión a la base del stock-app', ok: false, detail: 'faltan STOCK_APP_SUPABASE_URL/ANON_KEY' });
     } else {
-      const stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY);
+      const stockDb = createClient(process.env.STOCK_APP_SUPABASE_URL, process.env.STOCK_APP_SUPABASE_ANON_KEY,
+        process.env.STOCK_APP_TOKEN ? { global: { headers: { Authorization: `Bearer ${process.env.STOCK_APP_TOKEN}` } }, auth: { persistSession: false } } : undefined);
       const { error, count } = await stockDb.from('stock').select('*', { count: 'exact', head: true });
       checks.push({ name: 'Conexión a la base del stock-app', ok: !error, detail: error ? error.message : `${count ?? 0} artículos encontrados en stock` });
     }
