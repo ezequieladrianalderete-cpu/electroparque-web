@@ -49,6 +49,18 @@ function notifySheet(sku: string, nuevaCantidad: number, nuevoEstado: string) {
 //
 // El "claim" atómico (update ... where stock_synced_at is null) evita descontar stock
 // dos veces si el webhook de pago llega repetido (MP reintenta notificaciones seguido).
+// Flex (moto) para CABA y GBA, correo para el resto del país: se decide por el código
+// postal (CABA 1000-1499, GBA 1600-1899) o, si falta, por la provincia.
+function tipoEnvio(addr: any): string {
+  const cp = parseInt(String(addr?.zip || '').replace(/\D/g, '').slice(0, 4), 10);
+  if (cp >= 1000 && cp <= 1499) return 'Flex';
+  if (cp >= 1600 && cp <= 1899) return 'Flex';
+  const prov = String(addr?.province || '').toLowerCase();
+  if (/capital|caba|ciudad aut/.test(prov)) return 'Flex';
+  if (!addr || (!addr.zip && !addr.province)) return '';
+  return 'Correo';
+}
+
 export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
   if (!orderId) return;
 
@@ -118,6 +130,8 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
       observaciones: prod?.observaciones || null,
       ubicacion: ubicacion || null,
       web_order_id: orderId,
+      envio: tipoEnvio(claimed.shipping_address) || null,
+      total_pedido: Number(claimed.total) || null,
     });
   }
 }
