@@ -16,6 +16,7 @@ export interface Product {
   sku: string | null; category_id: string | null; is_active: boolean; is_featured: boolean;
   tags: string[] | null; specs: Record<string, string>; sort_order: number;
   video_url: string | null;
+  stock_disponible?: number | null;
   category?: Category; images?: ProductImage[]; variants?: ProductVariant[];
 }
 export interface Banner {

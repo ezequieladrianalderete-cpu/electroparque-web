@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import { OfferCountdown } from './OfferCountdown';
+import { stockDe } from '@/lib/stock';
 import { trackViewItem } from '@/lib/analytics';
 import { logEvent } from '@/lib/track';
 import type { Product, Review } from '@/types';
@@ -36,7 +37,8 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
   // Si hay oferta activa, el carrito debe usar el precio ya descontado (no el de lista).
   const cartProduct = activeOffer ? { ...product, price: basePrice, compare_at_price: product.price } : product;
 
-  const handleBuyNow = () => { buyNow(cartProduct, variant, qty); router.push('/checkout'); };
+  const stock = stockDe(product);
+  const handleBuyNow = () => { if (stock.agotado) return; buyNow(cartProduct, variant, qty); router.push('/checkout'); };
 
   const waMsg = `Hola! Estoy interesado en:\n\n📦 *${product.name}*${variant ? `\n🎨 ${variant.name}: ${variant.value}` : ''}\n💰 Precio: ${formatPrice(finalPrice)}\n🔢 Cantidad: ${qty}\n\n¿Está disponible? Quiero más info.`;
 
@@ -106,11 +108,19 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
         </div>
       )}
 
+      {stock.agotado ? (
+        <div className="w-full bg-gray-100 border-2 border-gray-200 text-gray-600 font-bold py-4 rounded-xl text-center text-lg">
+          SIN STOCK
+          <p className="text-xs font-medium text-gray-500 mt-1">Consultanos por WhatsApp cuándo vuelve a entrar</p>
+        </div>
+      ) : (<>
+      {stock.ultima && <p className="text-ep-red font-extrabold text-sm animate-pulse">🔥 ¡ÚLTIMA UNIDAD!</p>}
+      {stock.pocas && <p className="text-orange-600 font-bold text-sm">⚡ ¡Quedan solo {product.stock_disponible} unidades!</p>}
       <div className="flex gap-3 items-center">
         <div className="flex items-center border-2 rounded-xl overflow-hidden">
           <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-lg hover:bg-gray-50">−</button>
           <span className="px-4 font-bold border-x">{qty}</span>
-          <button onClick={() => setQty(qty + 1)} className="px-3 py-2 text-lg hover:bg-gray-50">+</button>
+          <button onClick={() => setQty(Math.min(stock.disponible, qty + 1))} disabled={qty >= stock.disponible} className="px-3 py-2 text-lg hover:bg-gray-50 disabled:opacity-30">+</button>
         </div>
       </div>
 
@@ -123,6 +133,7 @@ export function ProductInfo({ product, reviews, avgRating, offers = [] }: { prod
         className="w-full border-2 border-ep-navy text-ep-navy hover:bg-ep-navy hover:text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
         <ShoppingCart className="w-5 h-5" /> Agregar al carrito
       </button>
+      </>)}
 
       <a href={`https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-600 font-semibold py-3 rounded-xl hover:bg-green-50 transition-all hover:shadow-md">

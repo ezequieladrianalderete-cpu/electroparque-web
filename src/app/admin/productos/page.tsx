@@ -46,7 +46,9 @@ export default function ProductosListPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.category?.name || 'Sin categoría'} · SKU: {p.sku || '—'}</p>
+                    <p className="text-xs text-gray-400">{p.category?.name || 'Sin categoría'} · SKU: {p.sku || '—'}
+                      {p.stock_disponible == null ? <span className="ml-2 text-amber-600">· stock sin vincular</span>
+                        : <span className={`ml-2 font-bold ${p.stock_disponible <= 0 ? 'text-red-600' : p.stock_disponible === 1 ? 'text-orange-600' : 'text-green-700'}`}>· {p.stock_disponible <= 0 ? 'SIN STOCK' : p.stock_disponible === 1 ? 'Última unidad' : p.stock_disponible + ' u.'}</span>}</p>
                     <p className="text-sm font-bold text-ep-navy mt-1">${Number(p.price).toLocaleString('es-AR')}{p.compare_at_price ? <span className="text-xs text-gray-400 line-through ml-2">${Number(p.compare_at_price).toLocaleString('es-AR')}</span> : ''}</p>
                   </div>
                   <div className="flex items-center gap-1">

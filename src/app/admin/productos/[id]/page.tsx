@@ -30,7 +30,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [faqForm, setFaqForm] = useState({ question: '', answer: '' });
   const [faqSaving, setFaqSaving] = useState(false);
 
+  const [stockInput, setStockInput] = useState('');
+  const [stockSaving, setStockSaving] = useState(false);
+  const [stockMsg, setStockMsg] = useState('');
+
   useEffect(() => { if (!authLoading) load(); }, [authLoading]);
+
+  const saveStock = async () => {
+    if (stockInput === '' || Number(stockInput) < 0) { setStockMsg('❌ Poné una cantidad (0 o más)'); return; }
+    setStockSaving(true); setStockMsg('');
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const res = await fetch('/api/admin/stock', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ productId: id, cantidad: Number(stockInput) }),
+      });
+      const data = await res.json();
+      if (!res.ok) setStockMsg('❌ ' + (data.error || 'No se pudo guardar'));
+      else setStockMsg('✅ Stock guardado: ' + data.stock_disponible + ' u.' + (data.full_ml ? ` (en el sistema quedan ${data.total_sistema}, contando ${data.full_ml} en Full de ML)` : ''));
+    } catch (e: any) { setStockMsg('❌ ' + e.message); }
+    setStockSaving(false);
+  };
 
   const load = async () => {
     const [{ data: product }, { data: images }, { data: vars }, { data: categories }, { data: contentBlocks }, { data: productFaqs }] = await Promise.all([
@@ -43,6 +63,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     ]);
     if (!product) { router.push('/admin/productos'); return; }
     setForm({ ...product, tags: product.tags?.join(', ') || '' });
+    setStockInput(product.stock_disponible == null ? '' : String(product.stock_disponible));
     setExistingImages(images || []);
     setVariants((vars || []).map((v:any) => ({ ...v, price_modifier: String(v.price_modifier), stock: String(v.stock) })));
     setSpecs(product.specs ? Object.entries(product.specs).map(([key, value]) => ({ key, value: value as string })) : []);
@@ -379,6 +400,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <div><label className="label">Precio ($)</label><input type="number" value={form.price||''} onChange={set('price')} className="input-field"/></div>
             <div><label className="label">Precio tachado ($)</label><input type="number" value={form.compare_at_price||''} onChange={set('compare_at_price')} className="input-field"/></div>
             <div><label className="label">SKU</label><input value={form.sku||''} onChange={set('sku')} className="input-field"/></div>
+          </div>
+          <div className="bg-white rounded-xl border p-5 space-y-3">
+            <h2 className="font-bold text-sm">📊 Stock</h2>
+            {form.stock_app_id ? (<>
+              <p className="text-xs text-gray-400">Es el mismo stock del sistema (Mercado Libre, mostrador y tienda comparten las unidades). Con 0 la tienda muestra <b>SIN STOCK</b> y no deja comprar; con 1 muestra <b>¡Última unidad!</b>.</p>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1"><label className="label">Unidades para vender</label>
+                  <input type="number" min={0} value={stockInput} onChange={e => setStockInput(e.target.value)} className="input-field"/></div>
+                <button onClick={saveStock} disabled={stockSaving} className="bg-ep-navy text-white px-4 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50">{stockSaving ? '...' : 'Guardar'}</button>
+              </div>
+              {stockMsg && <p className="text-xs font-semibold">{stockMsg}</p>}
+            </>) : (
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">Este producto no está vinculado al sistema de stock, así que la tienda no controla cuántas unidades hay. Publicalo desde stock-app (botón "Publicar en la web" del producto) para que tome el stock de ahí.</p>
+            )}
           </div>
           <div className="bg-white rounded-xl border p-5 space-y-3">
             <h2 className="font-bold text-sm">📦 Envío</h2>

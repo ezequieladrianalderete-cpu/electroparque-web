@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { findActiveOffer, applyOffer } from '@/lib/offers';
+import { faltaStock } from '@/lib/stock';
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,10 +43,12 @@ export async function POST(req: NextRequest) {
     let totalPesos = 0;
     for (const item of items) {
       const productId = item.product_id || item.id;
-      const { data: product } = await supabase.from('products').select('id,price,category_id').eq('id', productId).eq('is_active', true).single();
+      const { data: product } = await supabase.from('products').select('*').eq('id', productId).eq('is_active', true).single();
       if (!product) {
         return NextResponse.json({ error: `Producto no disponible: ${item.name || productId}` }, { status: 400 });
       }
+      const sinStock = faltaStock(product, items, productId);
+      if (sinStock) return NextResponse.json({ error: sinStock }, { status: 400 });
       let priceModifier = 0;
       if (item.variant_id) {
         const { data: variant } = await supabase.from('product_variants').select('price_modifier').eq('id', item.variant_id).eq('product_id', productId).single();

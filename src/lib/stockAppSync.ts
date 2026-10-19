@@ -61,6 +61,23 @@ function tipoEnvio(addr: any): string {
   return 'Correo';
 }
 
+// Aviso por Telegram a los que reciben alertas del bot (mismo bot de stock-app). Nunca frena la venta.
+async function avisarTelegram(epSupabase: any, texto: string) {
+  try {
+    const { data: sec } = await epSupabase.from('ep_secretos').select('valor').eq('nombre', 'telegram_token').maybeSingle();
+    if (!sec?.valor) return;
+    const { data: usuarios } = await epSupabase.from('bot_usuarios').select('chat_id').eq('activo', true).eq('recibe_alertas', true);
+    for (const u of usuarios || []) {
+      await fetch(`https://api.telegram.org/bot${sec.valor}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: u.chat_id, text: texto }),
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.error('avisarTelegram:', e);
+  }
+}
+
 export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
   if (!orderId) return;
 
@@ -93,7 +110,7 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
     if (!stockAppId) {
       console.error(`syncOrderToStockApp: pedido ${orderId} — producto ${item.product_id} (${item.name || 'sin nombre'}) no tiene stock_app_id, no se descontó stock`);
     } else {
-      const { data: p } = await stockDb().from('stock').select('id,sku,articulo,cantidades,caja,estanteria,observaciones').eq('id', stockAppId).maybeSingle();
+      const { data: p } = await stockDb().from('stock').select('id,sku,articulo,cantidades,full_ml,caja,estanteria,observaciones').eq('id', stockAppId).maybeSingle();
       if (!p) {
         console.error(`syncOrderToStockApp: pedido ${orderId} — stock_app_id ${stockAppId} (producto ${item.product_id}) no existe en stock-app, no se descontó stock`);
       } else {
@@ -103,6 +120,13 @@ export async function syncOrderToStockApp(epSupabase: any, orderId: string) {
         const nuevoEstado = nuevo > 0 ? 'STOCK' : 'SIN STOCK';
         await stockDb().from('stock').update({ cantidades: nuevo, estado: nuevoEstado }).eq('id', stockAppId);
         if (prod.sku) notifySheet(prod.sku, nuevo, nuevoEstado);
+        // Lo que queda para vender en la tienda (lo que está en Full de ML no se puede mandar desde acá)
+        const quedaWeb = Math.max(0, nuevo - (Number(prod.full_ml) || 0));
+        if (quedaWeb <= 1) {
+          await avisarTelegram(epSupabase, quedaWeb === 0
+            ? `🛒 Tienda web: se vendió la última unidad de ${item.name || prod.articulo} (${prod.sku || '#' + prod.id}). Quedó en 0: la tienda ya lo muestra SIN STOCK. Hay que reponer.`
+            : `⚠️ Tienda web: se vendió ${item.name || prod.articulo} (${prod.sku || '#' + prod.id}) y queda 1 sola unidad. La tienda muestra "¡Última unidad!".`);
+        }
         await stockDb().from('movimientos').insert({
           fecha, hora, usuario: 'Tienda Web', articulo: item.name || prod.articulo,
           sku: prod.sku, tipo: 'venta', cantidad: qty, stock_anterior: anterior, stock_nuevo: nuevo,

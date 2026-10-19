@@ -9,6 +9,7 @@ import { useWishlist } from '@/store/wishlist';
 import { useRouter } from 'next/navigation';
 import { findActiveOffer, applyOffer, type OfferLike } from '@/lib/offers';
 import { OfferCountdown } from './OfferCountdown';
+import { stockDe } from '@/lib/stock';
 import type { Product } from '@/types';
 
 export function ProductCard({ product, offers = [] }: { product: Product; offers?: OfferLike[] }) {
@@ -28,10 +29,12 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
   const discount = referencePrice ? Math.round((1 - effectivePrice / referencePrice) * 100) : 0;
   // Si hay oferta activa, el carrito debe usar el precio ya descontado (no el de lista).
   const cartProduct = activeOffer ? { ...product, price: effectivePrice, compare_at_price: product.price } : product;
+  const stock = stockDe(product);
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (stock.agotado) return;
     buyNow(cartProduct);
     router.push('/checkout');
   };
@@ -52,6 +55,13 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
           )}
           {discount > 0 && <span className="absolute top-2 left-2 bg-ep-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
           {activeOffer?.ends_at && <OfferCountdown endsAt={activeOffer.ends_at} badge />}
+          {stock.agotado && (
+            <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+              <span className="bg-gray-800 text-white text-xs font-extrabold px-3 py-1.5 rounded-full tracking-wide">SIN STOCK</span>
+            </div>
+          )}
+          {stock.ultima && <span className="absolute bottom-2 left-2 bg-ep-red text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">¡ÚLTIMA UNIDAD!</span>}
+          {stock.pocas && <span className="absolute bottom-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">¡Quedan {product.stock_disponible}!</span>}
           <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
             {product.is_featured && <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⭐ TOP</span>}
             <button
@@ -83,6 +93,9 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
           <span className="text-lg font-extrabold bg-gradient-to-r from-ep-navy to-blue-600 bg-clip-text text-transparent">{formatPrice(effectivePrice)}</span>
           {referencePrice && <span className="text-xs text-gray-400 line-through">{formatPrice(referencePrice)}</span>}
         </div>
+        {stock.agotado ? (
+          <div className="w-full bg-gray-200 text-gray-500 text-xs font-bold py-2.5 rounded-lg text-center">SIN STOCK</div>
+        ) : (
         <div className="flex gap-1.5">
           <button onClick={handleBuyNow} className="flex-1 bg-gradient-to-r from-ep-red to-red-600 hover:from-red-600 hover:to-ep-red text-white text-xs font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm hover:shadow-md">
             <Zap className="w-3 h-3" /> COMPRAR
@@ -91,6 +104,7 @@ export function ProductCard({ product, offers = [] }: { product: Product; offers
             <ShoppingCart className="w-3.5 h-3.5" />
           </button>
         </div>
+        )}
       </div>
     </div>
   );
