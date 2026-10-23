@@ -4,17 +4,19 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { Plus, Trash2, Upload, ArrowLeft, ChevronUp, ChevronDown, Video, Smartphone, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
-type Placement = 'hero' | 'promo' | 'after_reviews';
+type Placement = 'hero' | 'promo' | 'after_reviews' | 'after_featured';
 
 const PLACEMENT_TABS: { value: Placement; label: string }[] = [
   { value: 'hero', label: 'Carrusel principal' },
   { value: 'promo', label: 'Banners con video' },
+  { value: 'after_featured', label: 'Debajo de los destacados' },
   { value: 'after_reviews', label: 'Debajo de las reseñas' },
 ];
 
 const PLACEMENT_HELP: Record<Placement, string> = {
   hero: 'Todos los banners "Activo" rotan en la portada, arriba de todo. El orden de la lista es el orden en que se muestran — usá las flechas para acomodarlos.',
   promo: 'Estos banners aparecen apilados más abajo en la portada, antes del pie de página. Pueden tener un video de fondo (se recomienda corto y liviano) o solo una imagen.',
+  after_featured: 'Estos banners aparecen justo debajo de "Productos destacados" en la portada, antes de las reseñas. Mismo formato que los banners con video: imagen o video, con su versión para celular.',
   after_reviews: 'Estos banners aparecen justo debajo de la sección de reseñas de clientes, antes de los videos de clientes. Mismo formato que los banners con video.',
 };
 

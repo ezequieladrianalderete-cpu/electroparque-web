@@ -21,7 +21,7 @@ export interface Product {
 }
 export interface Banner {
   id: string; title: string | null; subtitle: string | null; image_url: string;
-  image_mobile_url: string | null; video_url: string | null; placement: 'hero' | 'promo' | 'after_reviews';
+  image_mobile_url: string | null; video_url: string | null; placement: 'hero' | 'promo' | 'after_reviews' | 'after_featured';
   link_url: string | null; link_text: string | null; is_active: boolean; sort_order: number;
 }
 export interface ProductContentBlock {
