@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { findActiveOffer, applyOffer } from '@/lib/offers';
 import { faltaStock } from '@/lib/stock';
 
+import { urlTienda } from '@/lib/urlTienda';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://electroparque-web.vercel.app';
+    const baseUrl = urlTienda();
 
     const preferenceBody = {
       items: verifiedItems,

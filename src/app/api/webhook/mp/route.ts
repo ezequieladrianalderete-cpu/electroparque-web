@@ -42,10 +42,22 @@ export async function POST(req: NextRequest) {
         // Se pide el estado anterior para no mandar el aviso de nuevo si MP reintenta
         // el mismo webhook (algo que hace seguido).
         const { data: existingOrder } = await supabase.from('orders')
-          .select('status,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
+          .select('status,payment_id,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
           .eq('id', payment.external_reference).single();
 
-        const { error: updateError } = await supabase.from('orders').update({
+        // MP repite avisos del mismo pago y también avisa de intentos anteriores (ej. una tarjeta
+        // rechazada antes del pago bueno). Solo se cambia el estado si corresponde:
+        //  - pagado: si el pedido estaba pendiente (o cancelado y ahora se pagó)
+        //  - pendiente: solo si seguía pendiente
+        //  - cancelado: si seguía pendiente, o si es la devolución/anulación del MISMO pago que lo había pagado
+        // Así un aviso repetido no devuelve a "Pagado" un pedido que ya está "Preparando" o "Enviado".
+        const previo = existingOrder?.status || 'pending';
+        const mismoPago = String(existingOrder?.payment_id || '') === String(paymentId);
+        const cambia = newStatus === 'paid' ? (previo === 'pending' || previo === 'cancelled')
+          : newStatus === 'cancelled' ? (previo === 'pending' || mismoPago)
+          : previo === 'pending';
+
+        const { error: updateError } = !cambia ? { error: null } : await supabase.from('orders').update({
           status: newStatus,
           payment_id: String(paymentId),
           updated_at: new Date().toISOString(),
@@ -56,7 +68,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'No se pudo actualizar el pedido, reintentar' }, { status: 502 });
         }
 
-        if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
+        if (newStatus === 'paid' && cambia && existingOrder && existingOrder.status !== 'paid') {
           await notifyNewSale(existingOrder as any);
         }
         if (newStatus === 'paid') {

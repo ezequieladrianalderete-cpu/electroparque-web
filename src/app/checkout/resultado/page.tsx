@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { TrackPurchase } from '@/components/store/TrackPurchase';
 import { notifyNewSale } from '@/lib/notify';
+import { syncOrderToStockApp } from '@/lib/stockAppSync';
 
 // Esta página actualiza y lee un pedido a partir de un ID en la URL (venís acá redirigido
 // desde MercadoPago/GoCuotas), algo que ya no puede hacerse con la clave pública (ver
@@ -31,9 +32,28 @@ export default async function ResultadoPage({ searchParams }: Props) {
   // "success" no coincidía con nada y el pedido de GoCuotas quedaba mal marcado "pending"
   // (podía incluso pisar un "paid" correcto que ya hubiera puesto el webhook).
   const rawStatus = params.collection_status || params.status || 'unknown';
-  const paymentStatus = rawStatus === 'success' ? 'approved' : rawStatus === 'failure' ? 'rejected' : rawStatus;
+  let paymentStatus = rawStatus === 'success' ? 'approved' : rawStatus === 'failure' ? 'rejected' : rawStatus;
   const paymentId = params.payment_id || params.collection_id || '';
   const orderId = params.external_reference || params.order || '';
+
+  // Lo que viene en la dirección de esta página lo puede escribir cualquiera, así que NO alcanza para
+  // dar un pedido por pagado. Con Mercado Pago se le pregunta a MP el estado real del pago (y que sea
+  // de este pedido). GoCuotas no manda un ID de pago acá: ese pedido lo confirma su aviso (webhook).
+  let pagoConfirmado = false;
+  if (paymentId && orderId && process.env.MERCADOPAGO_ACCESS_TOKEN) {
+    try {
+      const r = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+        headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` }, cache: 'no-store',
+      });
+      if (r.ok) {
+        const pago = await r.json();
+        if (String(pago.external_reference || '') === orderId) {
+          paymentStatus = pago.status || paymentStatus;
+          pagoConfirmado = pago.status === 'approved';
+        }
+      }
+    } catch { /* si MP no responde, el pedido lo confirma el webhook */ }
+  }
 
   let order: any = null;
 
@@ -43,7 +63,7 @@ export default async function ResultadoPage({ searchParams }: Props) {
   // Actualizar y obtener el pedido
   if (orderId) {
     let newStatus = 'pending';
-    if (paymentStatus === 'approved') newStatus = 'paid';
+    if (paymentStatus === 'approved') newStatus = pagoConfirmado ? 'paid' : 'pending';
     else if (paymentStatus === 'pending' || paymentStatus === 'in_process') newStatus = 'pending';
     else if (paymentStatus === 'rejected') newStatus = 'cancelled';
 
@@ -54,18 +74,30 @@ export default async function ResultadoPage({ searchParams }: Props) {
     // webhook, que se encontraba el pedido ya "paid" y lo daba por avisado).
     const { data: before } = await supabase.from('orders').select('status').eq('id', orderId).single();
 
-    if (paymentStatus !== 'unknown') {
+    // Solo se toca un pedido que todavía no avanzó: si el cliente vuelve a abrir esta página más tarde,
+    // no tiene que pisar un "Preparando"/"Enviado" ni volver atrás un pago ya confirmado.
+    const previo = before?.status || 'pending';
+    const cambia = newStatus === 'paid' ? (previo === 'pending' || previo === 'cancelled') : previo === 'pending';
+    if (paymentStatus !== 'unknown' && cambia) {
       await supabase.from('orders').update({
         status: newStatus,
-        payment_id: paymentId || null,
+        ...(paymentId ? { payment_id: paymentId } : {}),
         updated_at: new Date().toISOString(),
       }).eq('id', orderId);
+    }
+
+    // Pago confirmado con Mercado Pago: el pedido pasa a la Lista de retiro y se descuenta el stock en el
+    // momento, aunque el aviso de MP (webhook) se demore o falle. No se hace dos veces: syncOrderToStockApp
+    // solo actúa la primera vez (marca stock_synced_at).
+    if (pagoConfirmado) {
+      try { await syncOrderToStockApp(supabase, orderId); }
+      catch (e: any) { console.error(`Resultado: fallo la sync de stock del pedido ${orderId}: ${e?.message || e}`); }
     }
 
     const { data } = await supabase.from('orders').select('*').eq('id', orderId).single();
     order = data;
 
-    if (newStatus === 'paid' && before && before.status !== 'paid' && order) {
+    if (newStatus === 'paid' && cambia && previo !== 'paid' && order) {
       await notifyNewSale(order);
     }
   }

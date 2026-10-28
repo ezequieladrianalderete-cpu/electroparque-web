@@ -27,7 +27,12 @@ export async function POST(req: NextRequest) {
       .select('status,order_number,customer_name,customer_phone,customer_email,total,items,shipping_address')
       .eq('id', order_reference_id).single();
 
-    const { error: updateError } = await supabase.from('orders').update({
+    // Igual que con Mercado Pago: un aviso repetido no tiene que volver atrás un pedido que ya avanzó
+    // (Preparando, Enviado...) ni cancelar uno que ya se pagó.
+    const previo = existingOrder?.status || 'pending';
+    const cambia = newStatus === 'paid' ? (previo === 'pending' || previo === 'cancelled') : previo === 'pending';
+
+    const { error: updateError } = !cambia ? { error: null } : await supabase.from('orders').update({
       status: newStatus,
       payment_id: order_id ? String(order_id) : null,
       updated_at: new Date().toISOString(),
@@ -38,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo actualizar el pedido, reintentar' }, { status: 502 });
     }
 
-    if (newStatus === 'paid' && existingOrder && existingOrder.status !== 'paid') {
+    if (newStatus === 'paid' && cambia && existingOrder && existingOrder.status !== 'paid') {
       await notifyNewSale(existingOrder as any);
     }
     if (newStatus === 'paid') {
