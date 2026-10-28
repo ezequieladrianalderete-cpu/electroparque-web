@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { createClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
 import { ProductCard } from '@/components/store/ProductCard';
 import { HeroCarousel } from '@/components/store/HeroCarousel';
 import { VideoBanner } from '@/components/store/VideoBanner';
@@ -10,9 +11,13 @@ import type { Product, Banner, VideoTestimonial, Faq } from '@/types';
 import type { OfferLike } from '@/lib/offers';
 import { OfferCountdown } from '@/components/store/OfferCountdown';
 
-export default async function HomePage() {
-  const supabase = await createClient();
-  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: afterReviewsBanners }, { data: afterFeaturedBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }, { data: faqs }] = await Promise.all([
+// Las 13 consultas de la portada viajan hasta la base del depósito. Se guardan 1 minuto: el primer visitante
+// las hace y los demás reciben la portada al instante. Un cambio (banner, destacado, stock) tarda hasta 1 min
+// en verse en la portada; el carrito y el pago siguen controlando el stock real en el momento.
+// Si alguna consulta falla no se guarda nada (así no queda una portada vacía por un minuto).
+async function traerDatosPortada() {
+  const supabase = createPublicClient();
+  const res = await Promise.all([
     supabase.from('products').select('*, category:categories(id,name,slug), images:product_images(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'hero').order('sort_order'),
     supabase.from('banners').select('*').eq('is_active', true).eq('placement', 'promo').order('sort_order'),
@@ -27,9 +32,20 @@ export default async function HomePage() {
     supabase.from('store_settings').select('key,value').in('key', ['whatsapp_number', 'offers_bg_image_url']),
     supabase.from('faqs').select('*').is('product_id', null).eq('is_active', true).order('sort_order'),
   ]);
+  const fallo = res.find((r) => r.error);
+  if (fallo) throw new Error('portada: ' + fallo.error!.message);
+  return res;
+}
+type DatosPortada = Awaited<ReturnType<typeof traerDatosPortada>>;
+const datosPortadaGuardados = unstable_cache(traerDatosPortada, ['portada-v1'], { revalidate: 60 });
+
+export default async function HomePage() {
+  const res: DatosPortada | null = await datosPortadaGuardados().catch(() => traerDatosPortada().catch(() => null));
+  const vacio = Array.from({ length: 13 }, () => ({ data: null })) as unknown as DatosPortada;
+  const [{ data: products }, { data: heroBanners }, { data: promoBanners }, { data: afterReviewsBanners }, { data: afterFeaturedBanners }, { data: reviews }, { data: allRatings }, { data: countdownOffers }, { data: allActiveOffers }, { data: categories }, { data: videoTestimonials }, { data: settingsRows }, { data: faqs }] = res || vacio;
   const offers = countdownOffers;
-  const whatsappNumber = settingsRows?.find(s => s.key === 'whatsapp_number')?.value || '541144128645';
-  const offersBgImage = settingsRows?.find(s => s.key === 'offers_bg_image_url')?.value || '';
+  const whatsappNumber = settingsRows?.find((s: any) => s.key === 'whatsapp_number')?.value || '541144128645';
+  const offersBgImage = settingsRows?.find((s: any) => s.key === 'offers_bg_image_url')?.value || '';
   const reviewCount = allRatings?.length || 0;
   const avgRating = reviewCount > 0 ? (allRatings!.reduce((sum, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1) : null;
 

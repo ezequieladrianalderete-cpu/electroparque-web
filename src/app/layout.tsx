@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { createClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
 import { Header } from '@/components/store/Header';
 import { Footer } from '@/components/store/Footer';
 import { WhatsAppButton } from '@/components/store/WhatsAppButton';
@@ -8,11 +9,21 @@ import { InstagramButton } from '@/components/store/InstagramButton';
 import { AnalyticsScripts } from '@/components/store/AnalyticsScripts';
 import { PageViewTracker } from '@/components/store/PageViewTracker';
 
+// La configuración de la tienda (WhatsApp, redes, analíticas, etc.) se lee en cada página: se guarda 1 minuto
+// para no ir hasta la base del depósito en cada visita. Si la consulta falla no se guarda nada.
+const configuracionTienda = unstable_cache(async () => {
+  const { data, error } = await createPublicClient().from('store_settings').select('key,value');
+  if (error) throw new Error('store_settings: ' + error.message);
+  const settings: Record<string, string> = {};
+  data?.forEach((d) => { if (d.value) settings[d.key] = d.value; });
+  return settings;
+}, ['store-settings-v1'], { revalidate: 60 });
+const leerConfiguracion = () => configuracionTienda().catch(() => ({} as Record<string, string>));
+
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = await createClient();
-  const { data } = await supabase.from('store_settings').select('value').eq('key', 'meta_domain_verification').single();
+  const settings = await leerConfiguracion();
   // Admite que pegaron el código solo, o la etiqueta <meta ...> completa que da Meta.
-  const raw = data?.value || '';
+  const raw = settings.meta_domain_verification || '';
   const match = raw.match(/content=["']([^"']+)["']/);
   const verificationCode = match ? match[1] : raw;
 
@@ -25,10 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data } = await supabase.from('store_settings').select('key,value');
-  const settings: Record<string, string> = {};
-  data?.forEach(d => { if (d.value) settings[d.key] = d.value; });
+  const settings = await leerConfiguracion();
 
   return (
     <html lang="es">
